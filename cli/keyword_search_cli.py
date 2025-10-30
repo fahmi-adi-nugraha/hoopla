@@ -2,18 +2,42 @@
 
 import argparse
 import json
+import string
+from functools import reduce
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 MOVIES_FILE_PATH = Path("data/movies.json")
+
+
+# Consider moving all the text cleaning functions to their own module or even package
+
+
+def remove_punctuation(text: str) -> str:
+    str_trans_map = str.maketrans("", "", string.punctuation)
+    return text.translate(str_trans_map)
+
+
+def convert_to_lower(text: str) -> str:
+    return text.lower()
+
+
+def clean_text(text: str) -> str:
+    func_list: list[Callable[[str], str]] = [
+        convert_to_lower,
+        remove_punctuation,
+    ]
+    return reduce(lambda acc, func: func(acc), func_list, text)
 
 
 def get_movies_matching_keywords(movie_data_path: Path, keywords: str) -> list[str]:
     with open(movie_data_path, "r") as movie_data_file:
         movie_data: dict[str, list[dict[str, Any]]] = json.load(movie_data_file)
     movie_matches: list[dict[str, Any]] = []
+    keywords_cleaned = clean_text(keywords)
     for movie in movie_data["movies"]:
-        if keywords.lower() in movie["title"].lower():
+        movie_title_cleaned = clean_text(movie["title"])
+        if keywords_cleaned in movie_title_cleaned:
             movie_matches.append(movie)
     return movie_matches
 
