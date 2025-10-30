@@ -13,7 +13,7 @@ def get_movies_matching_keywords(movie_data_path: Path, keywords: str) -> list[s
         movie_data: dict[str, list[dict[str, Any]]] = json.load(movie_data_file)
     movie_matches: list[dict[str, Any]] = []
     for movie in movie_data["movies"]:
-        if keywords in movie["title"]:
+        if keywords.lower() in movie["title"].lower():
             movie_matches.append(movie)
     return movie_matches
 
