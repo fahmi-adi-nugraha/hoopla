@@ -12,6 +12,13 @@ MOVIES_FILE_PATH = Path("data/movies.json")
 
 # Consider moving all the text cleaning functions to their own module or even package
 
+TextProcFunc = Callable[[str], str] | Callable[[str], list[str]]
+
+
+def tokenize(text: str) -> list[str]:
+    text_splits = text.split()
+    return [text for text in text_splits if text != ""]
+
 
 def remove_punctuation(text: str) -> str:
     str_trans_map = str.maketrans("", "", string.punctuation)
@@ -22,12 +29,21 @@ def convert_to_lower(text: str) -> str:
     return text.lower()
 
 
-def clean_text(text: str) -> str:
-    func_list: list[Callable[[str], str]] = [
+def clean_text(text: str) -> list[str]:
+    func_list: list[TextProcFunc] = [
         convert_to_lower,
         remove_punctuation,
+        tokenize,
     ]
     return reduce(lambda acc, func: func(acc), func_list, text)
+
+
+def match_movie_title(keyword_tokens: list[str], movie_title_tokens: list[str]) -> bool:
+    for movie_title_tok in movie_title_tokens:
+        for keyword_tok in keyword_tokens:
+            if keyword_tok in movie_title_tok:
+                return True
+    return False
 
 
 def get_movies_matching_keywords(movie_data_path: Path, keywords: str) -> list[str]:
@@ -37,7 +53,7 @@ def get_movies_matching_keywords(movie_data_path: Path, keywords: str) -> list[s
     keywords_cleaned = clean_text(keywords)
     for movie in movie_data["movies"]:
         movie_title_cleaned = clean_text(movie["title"])
-        if keywords_cleaned in movie_title_cleaned:
+        if match_movie_title(keywords_cleaned, movie_title_cleaned):
             movie_matches.append(movie)
     return movie_matches
 
