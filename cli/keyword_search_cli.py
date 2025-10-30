@@ -2,40 +2,12 @@
 
 import argparse
 import json
-import string
-from functools import reduce
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
+
+from text_processing.text_processing import clean_text
 
 MOVIES_FILE_PATH = Path("data/movies.json")
-
-
-# Consider moving all the text cleaning functions to their own module or even package
-
-TextProcFunc = Callable[[str], str] | Callable[[str], list[str]]
-
-
-def tokenize(text: str) -> list[str]:
-    text_splits = text.split()
-    return [text for text in text_splits if text != ""]
-
-
-def remove_punctuation(text: str) -> str:
-    str_trans_map = str.maketrans("", "", string.punctuation)
-    return text.translate(str_trans_map)
-
-
-def convert_to_lower(text: str) -> str:
-    return text.lower()
-
-
-def clean_text(text: str) -> list[str]:
-    func_list: list[TextProcFunc] = [
-        convert_to_lower,
-        remove_punctuation,
-        tokenize,
-    ]
-    return reduce(lambda acc, func: func(acc), func_list, text)
 
 
 def match_movie_title(keyword_tokens: list[str], movie_title_tokens: list[str]) -> bool:
