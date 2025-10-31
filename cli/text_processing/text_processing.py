@@ -2,11 +2,18 @@ import string
 from functools import partial, reduce
 from typing import Callable
 
+from nltk.stem import PorterStemmer
+
 TextProcFunc = Callable[[str | list[str]], str | list[str]]
 
 
-def remove_stop_words(text: list[str], stop_words: list[str]) -> list[str]:
-    return [word for word in text if word not in stop_words]
+def stem_tokens(tokens: list[str]) -> list[str]:
+    stemmer = PorterStemmer()
+    return [stemmer.stem(token) for token in tokens]
+
+
+def remove_stop_words(tokens: list[str], stop_words: list[str]) -> list[str]:
+    return [token for token in tokens if token not in stop_words]
 
 
 def tokenize(text: str) -> list[str]:
@@ -29,5 +36,6 @@ def clean_text(text: str, stop_words: list[str]) -> list[str]:
         remove_punctuation,
         tokenize,
         partial(remove_stop_words, stop_words=stop_words),
+        stem_tokens,
     ]
     return reduce(lambda acc, func: func(acc), func_list, text)
