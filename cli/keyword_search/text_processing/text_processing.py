@@ -4,7 +4,13 @@ from typing import Callable
 
 from nltk.stem import PorterStemmer
 
-TextProcFunc = Callable[[str | list[str]], str | list[str]]
+# TextProcFunc = Callable[[str | list[str]], str | list[str]]
+TextProcFunc = (
+    Callable[[str], str]
+    | Callable[[list[str]], list[str]]
+    | Callable[[str], list[str]]
+    | Callable[[list[str]], list[str]]
+)
 
 
 def stem_tokens(tokens: list[str]) -> list[str]:
