@@ -1,16 +1,7 @@
-import json
 from pathlib import Path
-from typing import Any
 
+from .inverted_index import InvertedIndex
 from .text_processing.text_processing import clean_text
-
-
-def match_movie_title(keyword_tokens: list[str], movie_title_tokens: list[str]) -> bool:
-    for movie_title_tok in movie_title_tokens:
-        for keyword_tok in keyword_tokens:
-            if keyword_tok in movie_title_tok:
-                return True
-    return False
 
 
 def get_stopwords(stop_words_file: Path) -> list[str]:
@@ -21,21 +12,14 @@ def get_stopwords(stop_words_file: Path) -> list[str]:
 
 
 def get_movies_matching_keywords(
-    movie_data_path: Path, keywords: str, stop_words: list[str]
-) -> list[dict[str, Any]]:
-    with open(movie_data_path, "r") as movie_data_file:
-        movie_data: dict[str, list[dict[str, Any]]] = json.load(movie_data_file)
-    movie_matches: list[dict[str, Any]] = []
-    keywords_cleaned = clean_text(keywords, stop_words)
-    for movie in movie_data["movies"]:
-        movie_title_cleaned = clean_text(movie["title"], stop_words)
-        if match_movie_title(keywords_cleaned, movie_title_cleaned):
-            movie_matches.append(movie)
+    movie_idx: InvertedIndex, keywords: str, stop_words: list[str]
+) -> list[dict[str, int | str]]:
+    keywords_clean = clean_text(keywords, stop_words)
+    movie_matches: list[dict[str, int | str]] = []
+    for keyword in keywords_clean:
+        doc_indexes = movie_idx.get_documents(keyword)
+        for doc_index in doc_indexes:
+            movie_matches.append(movie_idx.docmap[doc_index])
+            if len(movie_matches) == 5:
+                return movie_matches
     return movie_matches
-
-
-def get_movies(
-    movie_data_path: Path, stop_words_file: Path, keywords: str
-) -> list[dict[str, Any]]:
-    stopwords = get_stopwords(stop_words_file)
-    return get_movies_matching_keywords(movie_data_path, keywords, stopwords)

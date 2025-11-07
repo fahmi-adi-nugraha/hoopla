@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 
 import argparse
+import sys
 from pathlib import Path
 
 from keyword_search.inverted_index import InvertedIndex
-from keyword_search.keyword_search import get_movies
+from keyword_search.keyword_search import (
+    get_movies_matching_keywords,
+    get_stopwords,
+)
 
 MOVIES_FILE_PATH = Path("data/movies.json")
 
@@ -25,17 +29,23 @@ def main() -> None:
 
     args = parser.parse_args()
 
+    inverted_index = InvertedIndex()
     match args.command:
         case "search":
             print(f"Searching for: {args.query}")
-            movies = get_movies(MOVIES_FILE_PATH, STOPWORDS_FILE, args.query)
-            for i, movie in enumerate(sorted(movies, key=lambda m: m["id"])[:5]):
+            try:
+                inverted_index.load()
+            except FileNotFoundError as e:
+                print(f"could not find index or docmap: {e}")
+                sys.exit(1)
+
+            stopwords = get_stopwords(STOPWORDS_FILE)
+            movies = get_movies_matching_keywords(inverted_index, args.query, stopwords)
+            for i, movie in enumerate(sorted(movies, key=lambda m: m["id"])):
                 print(f"{i + 1}. {movie['title']}")
         case "build":
-            inverted_index = InvertedIndex()
-            inverted_index.build(MOVIES_FILE_PATH)
-            docs = inverted_index.get_documents("merida")
-            print(f"First document for token 'merida' = {docs[0]}")
+            stopwords = get_stopwords(STOPWORDS_FILE)
+            inverted_index.build(MOVIES_FILE_PATH, stopwords)
         case _:
             parser.print_help()
 
