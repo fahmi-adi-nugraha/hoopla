@@ -1,9 +1,10 @@
 import json
 import pickle
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from .text_processing.text_processing import clean_text
+from .text_processing.text_processing import clean_text, tokenize
 
 DEFAULT_CACHE_DIR = "./cache"
 
@@ -12,13 +13,16 @@ class InvertedIndex:
     def __init__(self):
         self.index: dict[str, set[int]] = {}
         self.docmap: dict[int, dict[str, int | str]] = {}
+        self.term_frequencies: dict[int, Counter[str]] = {}
 
     def __add_document(self, doc_id: int, text: str, stopwords: list[str]) -> None:
         tokens = clean_text(text, stopwords)
+        self.term_frequencies[doc_id] = Counter()
         for token in tokens:
             if token not in self.index:
                 self.index[token] = set()
             self.index[token].add(doc_id)
+            self.term_frequencies[doc_id][token] += 1
 
     def get_documents(self, term: str) -> list[int]:
         doc_ids = self.index.get(term.lower(), None)
@@ -40,27 +44,40 @@ class InvertedIndex:
 
         self.save(Path(DEFAULT_CACHE_DIR))
 
+    def get_tf(self, doc_id: int, term: str) -> int:
+        term_tok = tokenize(term)
+        if len(term_tok) > 1:
+            raise ValueError("Expected only one term")
+        return self.term_frequencies[doc_id][term.lower()]
+
+    def __serialize(self, file_path: Path, data: dict[Any, Any]) -> None:
+        with open(file_path, "wb") as out_file:
+            pickle.dump(data, out_file)
+
     def save(self, cache_dir: Path) -> None:
         if not cache_dir.exists():
             cache_dir.mkdir(exist_ok=True)
 
-        with open(cache_dir.joinpath("index.pkl"), "wb") as index_file:
-            pickle.dump(self.index, index_file)
+        self.__serialize(cache_dir.joinpath("index.pkl"), self.index)
+        self.__serialize(cache_dir.joinpath("docmap.pkl"), self.docmap)
+        self.__serialize(
+            cache_dir.joinpath("term_frequencies.pkl"), self.term_frequencies
+        )
 
-        with open(cache_dir.joinpath("docmap.pkl"), "wb") as docmap_file:
-            pickle.dump(self.docmap, docmap_file)
+    def __unserialize(self, file_path: Path) -> dict[Any, Any]:
+        if not file_path.exists():
+            raise FileNotFoundError(f"could not find file '{file_path}'")
+        with open(file_path, "rb") as fp:
+            return pickle.load(fp)
 
     def load(self) -> None:
         cache_dir = Path(DEFAULT_CACHE_DIR)
 
         idx_file = cache_dir.joinpath("index.pkl")
-        if not idx_file.exists():
-            raise FileNotFoundError(f"could not find file '{idx_file}'")
-        with open(idx_file, "rb") as idx:
-            self.index = pickle.load(idx)
+        self.index = self.__unserialize(idx_file)
 
         docmap_file = cache_dir.joinpath("docmap.pkl")
-        if not docmap_file.exists():
-            raise FileNotFoundError(f"could not find file '{docmap_file}'")
-        with open(cache_dir.joinpath("docmap.pkl"), "rb") as dcm:
-            self.docmap = pickle.load(dcm)
+        self.docmap = self.__unserialize(docmap_file)
+
+        term_freq_file = cache_dir.joinpath("term_frequencies.pkl")
+        self.term_frequencies = self.__unserialize(term_freq_file)
