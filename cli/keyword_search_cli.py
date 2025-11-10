@@ -5,7 +5,7 @@ import math
 import sys
 from pathlib import Path
 
-from keyword_search.inverted_index import InvertedIndex
+from keyword_search.inverted_index import InvertedIndex, calc_idf, calc_tf_for_doc
 from keyword_search.keyword_search import (
     get_movies_matching_keywords,
     get_stopwords,
@@ -27,6 +27,7 @@ def load_index(inverted_index: InvertedIndex) -> None:
 
 
 def main() -> None:
+    # Put this whole thing into a function
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
@@ -50,46 +51,64 @@ def main() -> None:
         "idf_term", type=str, help="Term whose IDF you wish to find"
     )
 
+    tf_idf_parser = subparsers.add_parser(
+        "tfidf",
+        help="Calculate the TF-IDF of the given term for the specified document",
+    )
+    tf_idf_parser.add_argument("tfidf_doc_id", type=int, help="Document id")
+    tf_idf_parser.add_argument(
+        "tfidf_term", type=str, help="Term whose TF you wish to find"
+    )
+
     args = parser.parse_args()
 
     inverted_index = InvertedIndex()
 
-    match args.command:
-        case "search":
-            load_index(inverted_index)
-            print(f"Searching for: {args.query}")
-            stopwords = get_stopwords(STOPWORDS_FILE)
-            movies = get_movies_matching_keywords(inverted_index, args.query, stopwords)
-            for i, movie in enumerate(sorted(movies, key=lambda m: m["id"])):
-                print(f"{i + 1}. {movie['title']}")
-        case "build":
-            stopwords = get_stopwords(STOPWORDS_FILE)
-            inverted_index.build(MOVIES_FILE_PATH, stopwords)
-        case "tf":
-            load_index(inverted_index)
-            try:
-                num_occurrences = inverted_index.get_tf(args.tf_doc_id, args.tf_term)
-                doc = inverted_index.docmap[args.tf_doc_id]
-                print(
-                    f"Number of times '{args.tf_term}' appears in '{doc['title']}': {num_occurrences}"
+    try:
+        # Put this whole thing into a function
+        match args.command:
+            case "search":
+                load_index(inverted_index)
+                print(f"Searching for: {args.query}")
+                stopwords = get_stopwords(STOPWORDS_FILE)
+                movies = get_movies_matching_keywords(
+                    inverted_index, args.query, stopwords
                 )
-            except ValueError as e:
-                print(f"Value error: {e}")
-                sys.exit(1)
-            except Exception as e:
-                print(f"Error: {e}")
-                sys.exit(1)
-        case "idf":
-            load_index(inverted_index)
-            if len(args.idf_term.split()) > 1:
-                print("Value error: 'idf' only accepts one term")
-                sys.exit(1)
-            doc_count = len(inverted_index.docmap)
-            term_doc_count = len(inverted_index.get_documents(args.idf_term))
-            idf = math.log((doc_count + 1) / (term_doc_count + 1))
-            print(f"IDF of '{args.idf_term}': {idf:.2f}")
-        case _:
-            parser.print_help()
+                for i, movie in enumerate(sorted(movies, key=lambda m: m["id"])):
+                    print(f"{i + 1}. {movie['title']}")
+            case "build":
+                stopwords = get_stopwords(STOPWORDS_FILE)
+                inverted_index.build(MOVIES_FILE_PATH, stopwords)
+            case "tf":
+                load_index(inverted_index)
+                tf, doc_title = calc_tf_for_doc(
+                    inverted_index, args.tf_doc_id, args.tf_term
+                )
+                print(
+                    f"Number of times '{args.tf_term}' appears in '{doc_title}': {tf}"
+                )
+            case "idf":
+                load_index(inverted_index)
+                idf = calc_idf(inverted_index, args.idf_term)
+                print(f"IDF of '{args.idf_term}': {idf:.2f}")
+            case "tfidf":
+                load_index(inverted_index)
+                tf, doc_title = calc_tf_for_doc(
+                    inverted_index, args.tfidf_doc_id, args.tfidf_term
+                )
+                idf = calc_idf(inverted_index, args.tfidf_term)
+                tfidf = tf * idf
+                print(
+                    f"TF-IDF score of '{args.tfidf_term}' in document '{doc_title}': {tfidf:.2f}"
+                )
+            case _:
+                parser.print_help()
+    except ValueError as e:
+        print(f"Value error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
