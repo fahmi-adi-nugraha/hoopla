@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import math
 import sys
 from pathlib import Path
 
@@ -11,8 +12,6 @@ from keyword_search.keyword_search import (
 )
 
 MOVIES_FILE_PATH = Path("data/movies.json")
-
-# Hardcode until we know for sure we'll ask user for location
 STOPWORDS_FILE = Path("data/stopwords.txt")
 
 
@@ -41,8 +40,15 @@ def main() -> None:
     tf_parser = subparsers.add_parser(
         "tf", help="Get the number of times a term appears in the specfied document"
     )
-    tf_parser.add_argument("doc_id", type=int, help="Document id")
-    tf_parser.add_argument("term", type=str, help="Term whose TF you wish to find")
+    tf_parser.add_argument("tf_doc_id", type=int, help="Document id")
+    tf_parser.add_argument("tf_term", type=str, help="Term whose TF you wish to find")
+
+    idf_parser = subparsers.add_parser(
+        "idf", help="Calculate the IDF of the given term for the specified document"
+    )
+    idf_parser.add_argument(
+        "idf_term", type=str, help="Term whose IDF you wish to find"
+    )
 
     args = parser.parse_args()
 
@@ -62,10 +68,10 @@ def main() -> None:
         case "tf":
             load_index(inverted_index)
             try:
-                num_occurrences = inverted_index.get_tf(args.doc_id, args.term)
-                doc = inverted_index.docmap[args.doc_id]
+                num_occurrences = inverted_index.get_tf(args.tf_doc_id, args.tf_term)
+                doc = inverted_index.docmap[args.tf_doc_id]
                 print(
-                    f"Number of times '{args.term}' appears in '{doc['title']}': {num_occurrences}"
+                    f"Number of times '{args.tf_term}' appears in '{doc['title']}': {num_occurrences}"
                 )
             except ValueError as e:
                 print(f"Value error: {e}")
@@ -73,6 +79,15 @@ def main() -> None:
             except Exception as e:
                 print(f"Error: {e}")
                 sys.exit(1)
+        case "idf":
+            load_index(inverted_index)
+            if len(args.idf_term.split()) > 1:
+                print("Value error: 'idf' only accepts one term")
+                sys.exit(1)
+            doc_count = len(inverted_index.docmap)
+            term_doc_count = len(inverted_index.get_documents(args.idf_term))
+            idf = math.log((doc_count + 1) / (term_doc_count + 1))
+            print(f"IDF of '{args.idf_term}': {idf:.2f}")
         case _:
             parser.print_help()
 

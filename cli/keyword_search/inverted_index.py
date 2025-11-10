@@ -4,9 +4,14 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from nltk.stem import PorterStemmer
+
 from .text_processing.text_processing import clean_text, tokenize
 
 DEFAULT_CACHE_DIR = "./cache"
+
+
+# TODO: Figure out how to make the stemming faster for getting the tf and the idf
 
 
 class InvertedIndex:
@@ -14,6 +19,7 @@ class InvertedIndex:
         self.index: dict[str, set[int]] = {}
         self.docmap: dict[int, dict[str, int | str]] = {}
         self.term_frequencies: dict[int, Counter[str]] = {}
+        self.__stemmer = PorterStemmer()
 
     def __add_document(self, doc_id: int, text: str, stopwords: list[str]) -> None:
         tokens = clean_text(text, stopwords)
@@ -25,7 +31,11 @@ class InvertedIndex:
             self.term_frequencies[doc_id][token] += 1
 
     def get_documents(self, term: str) -> list[int]:
-        doc_ids = self.index.get(term.lower(), None)
+        term_tok = tokenize(term)
+        if len(term_tok) > 1:
+            raise ValueError("Expected only one term")
+        stemmed_term = self.__stemmer.stem(term)
+        doc_ids = self.index.get(stemmed_term, None)
         if doc_ids is None:
             return []
         return sorted(doc_ids)
@@ -48,7 +58,8 @@ class InvertedIndex:
         term_tok = tokenize(term)
         if len(term_tok) > 1:
             raise ValueError("Expected only one term")
-        return self.term_frequencies[doc_id][term.lower()]
+        stemmed_term = self.__stemmer.stem(term)
+        return self.term_frequencies[doc_id][stemmed_term]
 
     def __serialize(self, file_path: Path, data: dict[Any, Any]) -> None:
         with open(file_path, "wb") as out_file:
