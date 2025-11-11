@@ -2,7 +2,7 @@ import sys
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
-from .inverted_index import InvertedIndex, calc_idf, calc_tf_for_doc
+from .inverted_index import InvertedIndex
 from .keyword_search import get_movies_matching_keywords, get_stopwords
 
 MOVIES_FILE_PATH = Path("data/movies.json")
@@ -34,16 +34,18 @@ def proc(inv_idx: InvertedIndex, args: Namespace, arg_parser: ArgumentParser) ->
             inv_idx.build(MOVIES_FILE_PATH, stopwords)
         case "tf":
             load_index(inv_idx)
-            tf, doc_title = calc_tf_for_doc(inv_idx, args.tf_doc_id, args.tf_term)
+            tf = inv_idx.get_tf(args.tf_doc_id, args.tf_term)
+            doc_title = inv_idx.docmap[args.tf_doc_id]["title"]
             print(f"Number of times '{args.tf_term}' appears in '{doc_title}': {tf}")
         case "idf":
             load_index(inv_idx)
-            idf = calc_idf(inv_idx, args.idf_term)
+            idf = inv_idx.get_idf(args.idf_term)
             print(f"IDF of '{args.idf_term}': {idf:.2f}")
         case "tfidf":
             load_index(inv_idx)
-            tf, doc_title = calc_tf_for_doc(inv_idx, args.tfidf_doc_id, args.tfidf_term)
-            idf = calc_idf(inv_idx, args.tfidf_term)
+            tf = inv_idx.get_tf(args.tfidf_doc_id, args.tfidf_term)
+            doc_title = inv_idx.docmap[args.tfidf_doc_id]["title"]
+            idf = inv_idx.get_idf(args.tfidf_term)
             tfidf = tf * idf
             print(
                 f"TF-IDF score of '{args.tfidf_term}' in document '{doc_title}': {tfidf:.2f}"

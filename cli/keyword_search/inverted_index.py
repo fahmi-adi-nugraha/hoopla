@@ -62,6 +62,12 @@ class InvertedIndex:
         stemmed_term = self.__stemmer.stem(term)
         return self.term_frequencies[doc_id][stemmed_term]
 
+    def get_idf(self, term: str) -> float:
+        doc_count = len(self.docmap)
+        term_doc_count = len(self.get_documents(term))
+        idf = math.log((doc_count + 1) / (term_doc_count + 1))
+        return idf
+
     def __serialize(self, file_path: Path, data: dict[Any, Any]) -> None:
         with open(file_path, "wb") as out_file:
             pickle.dump(data, out_file)
@@ -93,16 +99,3 @@ class InvertedIndex:
 
         term_freq_file = cache_dir.joinpath("term_frequencies.pkl")
         self.term_frequencies = self.__unserialize(term_freq_file)
-
-
-def calc_tf_for_doc(invidx: InvertedIndex, doc_id: int, term: str) -> tuple[int, str]:
-    num_occurrences = invidx.get_tf(doc_id, term)
-    doc = invidx.docmap[doc_id]
-    return num_occurrences, doc["title"]
-
-
-def calc_idf(invidx: InvertedIndex, term: str) -> float:
-    doc_count = len(invidx.docmap)
-    term_doc_count = len(invidx.get_documents(term))
-    idf = math.log((doc_count + 1) / (term_doc_count + 1))
-    return idf
