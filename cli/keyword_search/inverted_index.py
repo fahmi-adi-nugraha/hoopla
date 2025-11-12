@@ -22,6 +22,11 @@ class InvertedIndex:
         self.term_frequencies: dict[int, Counter[str]] = {}
         self.__stemmer = PorterStemmer()
 
+    def __validate_term(self, term: str) -> None:
+        term_tok = tokenize(term)
+        if len(term_tok) > 1:
+            raise ValueError("Expected only one term")
+
     def __add_document(self, doc_id: int, text: str, stopwords: list[str]) -> None:
         tokens = clean_text(text, stopwords)
         self.term_frequencies[doc_id] = Counter()
@@ -32,9 +37,7 @@ class InvertedIndex:
             self.term_frequencies[doc_id][token] += 1
 
     def get_documents(self, term: str) -> list[int]:
-        term_tok = tokenize(term)
-        if len(term_tok) > 1:
-            raise ValueError("Expected only one term")
+        self.__validate_term(term)
         stemmed_term = self.__stemmer.stem(term)
         doc_ids = self.index.get(stemmed_term, None)
         if doc_ids is None:
@@ -56,17 +59,20 @@ class InvertedIndex:
         self.save(Path(DEFAULT_CACHE_DIR))
 
     def get_tf(self, doc_id: int, term: str) -> int:
-        term_tok = tokenize(term)
-        if len(term_tok) > 1:
-            raise ValueError("Expected only one term")
+        self.__validate_term(term)
         stemmed_term = self.__stemmer.stem(term)
         return self.term_frequencies[doc_id][stemmed_term]
 
     def get_idf(self, term: str) -> float:
         doc_count = len(self.docmap)
         term_doc_count = len(self.get_documents(term))
-        idf = math.log((doc_count + 1) / (term_doc_count + 1))
-        return idf
+        return math.log((doc_count + 1) / (term_doc_count + 1))
+
+    def get_bm25_idf(self, term: str) -> float:
+        self.__validate_term(term)
+        doc_count = len(self.docmap)
+        term_doc_count = len(self.get_documents(term))
+        return math.log((doc_count - term_doc_count + 0.5) / (term_doc_count + 0.5) + 1)
 
     def __serialize(self, file_path: Path, data: dict[Any, Any]) -> None:
         with open(file_path, "wb") as out_file:

@@ -40,7 +40,11 @@ def proc(inv_idx: InvertedIndex, args: Namespace, arg_parser: ArgumentParser) ->
         case "idf":
             load_index(inv_idx)
             idf = inv_idx.get_idf(args.idf_term)
-            print(f"IDF of '{args.idf_term}': {idf:.2f}")
+            print(f"IDF score of '{args.idf_term}': {idf:.2f}")
+        case "bm25idf":
+            load_index(inv_idx)
+            idf = inv_idx.get_bm25_idf(args.bm25idf_term)
+            print(f"BM25 IDF score of '{args.bm25idf_term}': {idf:.2f}")
         case "tfidf":
             load_index(inv_idx)
             tf = inv_idx.get_tf(args.tfidf_doc_id, args.tfidf_term)

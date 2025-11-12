@@ -34,4 +34,12 @@ def get_opts() -> tuple[Namespace, ArgumentParser]:
         "tfidf_term", type=str, help="Term whose TF you wish to find"
     )
 
+    bm25_idf_parser = subparsers.add_parser(
+        "bm25idf",
+        help="Calculate the BM25 IDF of the given term for the specified document",
+    )
+    bm25_idf_parser.add_argument(
+        "bm25idf_term", type=str, help="Term whose BM25 IDF you wish to find"
+    )
+
     return parser.parse_args(), parser
