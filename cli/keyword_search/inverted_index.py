@@ -3,6 +3,7 @@ import math
 import pickle
 from collections import Counter
 from pathlib import Path
+from pydoc import doc
 from typing import Any
 
 from nltk.stem import PorterStemmer
@@ -10,6 +11,7 @@ from nltk.stem import PorterStemmer
 from .text_processing.text_processing import clean_text, tokenize
 
 DEFAULT_CACHE_DIR = "./cache"
+BM25_K1 = 1.5
 
 
 # TODO: Figure out how to make the stemming faster for getting the tf and the idf
@@ -73,6 +75,10 @@ class InvertedIndex:
         doc_count = len(self.docmap)
         term_doc_count = len(self.get_documents(term))
         return math.log((doc_count - term_doc_count + 0.5) / (term_doc_count + 0.5) + 1)
+
+    def get_bm25_tf(self, doc_id: int, term: str, k1: float = BM25_K1) -> float:
+        tf = self.get_tf(doc_id, term)
+        return (tf * (k1 + 1)) / (tf + k1)
 
     def __serialize(self, file_path: Path, data: dict[Any, Any]) -> None:
         with open(file_path, "wb") as out_file:

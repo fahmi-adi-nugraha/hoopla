@@ -41,10 +41,6 @@ def proc(inv_idx: InvertedIndex, args: Namespace, arg_parser: ArgumentParser) ->
             load_index(inv_idx)
             idf = inv_idx.get_idf(args.idf_term)
             print(f"IDF score of '{args.idf_term}': {idf:.2f}")
-        case "bm25idf":
-            load_index(inv_idx)
-            idf = inv_idx.get_bm25_idf(args.bm25idf_term)
-            print(f"BM25 IDF score of '{args.bm25idf_term}': {idf:.2f}")
         case "tfidf":
             load_index(inv_idx)
             tf = inv_idx.get_tf(args.tfidf_doc_id, args.tfidf_term)
@@ -54,5 +50,15 @@ def proc(inv_idx: InvertedIndex, args: Namespace, arg_parser: ArgumentParser) ->
             print(
                 f"TF-IDF score of '{args.tfidf_term}' in document '{doc_title}': {tfidf:.2f}"
             )
+        case "bm25tf":
+            load_index(inv_idx)
+            bm25tf = inv_idx.get_bm25_tf(args.bm25tf_doc_id, args.bm25tf_term)
+            print(
+                f"BM25 TF score of '{args.bm25tf_term}' in document '{args.bm25tf_doc_id}': {bm25tf:.2f}"
+            )
+        case "bm25idf":
+            load_index(inv_idx)
+            bm25idf = inv_idx.get_bm25_idf(args.bm25idf_term)
+            print(f"BM25 IDF score of '{args.bm25idf_term}': {bm25idf:.2f}")
         case _:
             arg_parser.print_help()

@@ -1,5 +1,7 @@
 from argparse import ArgumentParser, Namespace
 
+from .inverted_index import BM25_K1
+
 
 def get_opts() -> tuple[Namespace, ArgumentParser]:
     parser = ArgumentParser(description="Keyword Search CLI")
@@ -40,6 +42,18 @@ def get_opts() -> tuple[Namespace, ArgumentParser]:
     )
     bm25_idf_parser.add_argument(
         "bm25idf_term", type=str, help="Term whose BM25 IDF you wish to find"
+    )
+
+    bm25_idf_parser = subparsers.add_parser(
+        "bm25tf",
+        help="Calculate the BM25 TF of the given term for the specified document",
+    )
+    bm25_idf_parser.add_argument("bm25tf_doc_id", type=int, help="Document id")
+    bm25_idf_parser.add_argument(
+        "bm25tf_term", type=str, help="Term whose BM25 TF you wish to find"
+    )
+    bm25_idf_parser.add_argument(
+        "k1", type=float, nargs="?", default=BM25_K1, help="Document id"
     )
 
     return parser.parse_args(), parser
