@@ -45,3 +45,20 @@ def clean_text(text: str, stop_words: list[str]) -> list[str]:
         stem_tokens,
     ]
     return reduce(lambda acc, func: func(acc), func_list, text)
+
+
+def clean_text_up_to_tokenize(text: str) -> list[str]:
+    func_list: list[TextProcFunc] = [
+        convert_to_lower,
+        remove_punctuation,
+        tokenize,
+    ]
+    return reduce(lambda acc, func: func(acc), func_list, text)
+
+
+def clean_text_finish(text: list[str], stop_words: list[str]) -> list[str]:
+    func_list: list[TextProcFunc] = [
+        partial(remove_stop_words, stop_words=stop_words),
+        stem_tokens,
+    ]
+    return reduce(lambda acc, func: func(acc), func_list, text)

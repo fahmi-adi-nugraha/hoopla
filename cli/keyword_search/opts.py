@@ -1,6 +1,6 @@
 from argparse import ArgumentParser, Namespace
 
-from .inverted_index import BM25_K1
+from .inverted_index import BM25_B, BM25_K1
 
 
 def get_opts() -> tuple[Namespace, ArgumentParser]:
@@ -44,16 +44,27 @@ def get_opts() -> tuple[Namespace, ArgumentParser]:
         "bm25idf_term", type=str, help="Term whose BM25 IDF you wish to find"
     )
 
-    bm25_idf_parser = subparsers.add_parser(
+    bm25_tf_parser = subparsers.add_parser(
         "bm25tf",
         help="Calculate the BM25 TF of the given term for the specified document",
     )
-    bm25_idf_parser.add_argument("bm25tf_doc_id", type=int, help="Document id")
-    bm25_idf_parser.add_argument(
+    bm25_tf_parser.add_argument("bm25tf_doc_id", type=int, help="Document id")
+    bm25_tf_parser.add_argument(
         "bm25tf_term", type=str, help="Term whose BM25 TF you wish to find"
     )
-    bm25_idf_parser.add_argument(
-        "k1", type=float, nargs="?", default=BM25_K1, help="Document id"
+    bm25_tf_parser.add_argument(
+        "bm25tf_k1",
+        type=float,
+        nargs="?",
+        default=BM25_K1,
+        help="Tunable BM25 k1 parameter",
+    )
+    bm25_tf_parser.add_argument(
+        "bm25tf_b",
+        type=float,
+        nargs="?",
+        default=BM25_B,
+        help="Tunable BM25 b parameter",
     )
 
     return parser.parse_args(), parser

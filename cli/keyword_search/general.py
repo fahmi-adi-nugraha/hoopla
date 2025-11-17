@@ -2,7 +2,7 @@ import sys
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
-from .inverted_index import BM25_K1, InvertedIndex
+from .inverted_index import BM25_B, BM25_K1, InvertedIndex
 from .keyword_search import get_movies_matching_keywords, get_stopwords
 
 MOVIES_FILE_PATH = Path("data/movies.json")
@@ -55,10 +55,14 @@ def tfidf_command(inv_idx: InvertedIndex, doc_id: int, term: str) -> None:
 
 
 def bm25_tf_command(
-    inv_idx: InvertedIndex, doc_id: int, term: str, k1: float = BM25_K1
+    inv_idx: InvertedIndex,
+    doc_id: int,
+    term: str,
+    k1: float = BM25_K1,
+    b: float = BM25_B,
 ) -> None:
     load_index(inv_idx)
-    bm25tf = inv_idx.get_bm25_tf(doc_id, term, k1)
+    bm25tf = inv_idx.get_bm25_tf(doc_id, term, k1, b)
     print(f"BM25 TF score of '{term}' in document '{doc_id}': {bm25tf:.2f}")
 
 
@@ -81,7 +85,13 @@ def proc(inv_idx: InvertedIndex, args: Namespace, arg_parser: ArgumentParser) ->
         case "tfidf":
             tfidf_command(inv_idx, args.tfidf_doc_id, args.tfidf_term)
         case "bm25tf":
-            bm25_tf_command(inv_idx, args.bm25tf_doc_id, args.bm25tf_term)
+            bm25_tf_command(
+                inv_idx,
+                args.bm25tf_doc_id,
+                args.bm25tf_term,
+                args.bm25tf_k1,
+                args.bm25tf_b,
+            )
         case "bm25idf":
             bm25_idf_command(inv_idx, args.bm25idf_term)
         case _:
