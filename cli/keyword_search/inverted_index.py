@@ -107,6 +107,27 @@ class InvertedIndex:
         tf = self.get_tf(doc_id, term)
         return (tf * (k1 + 1)) / (tf + k1 * length_norm)
 
+    def bm25(
+        self, doc_id: int, term: str, k1: float = BM25_K1, b: float = BM25_B
+    ) -> float:
+        bm25_tf = self.get_bm25_tf(doc_id, term, k1, b)
+        bm25_idf = self.get_bm25_idf(term)
+        return bm25_tf * bm25_idf
+
+    def bm25_search(
+        self, query: str, limit: int, k1: float = BM25_K1, b: float = BM25_B
+    ) -> list[tuple[int, float]]:
+        query_tokens = clean_text(query)
+        scores: dict[int, float] = {}
+        for query_token in query_tokens:
+            for doc_id in self.index[query_token]:
+                if doc_id not in scores:
+                    scores[doc_id] = 0
+                scores[doc_id] += self.bm25(doc_id, query_token, k1, b)
+
+        top_docs = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:limit]
+        return top_docs
+
     def __serialize(self, file_path: Path, data: dict[Any, Any]) -> None:
         with open(file_path, "wb") as out_file:
             pickle.dump(data, out_file)

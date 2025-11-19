@@ -36,14 +36,24 @@ def convert_to_lower(text: str) -> str:
     return text.lower()
 
 
-def clean_text(text: str, stop_words: list[str]) -> list[str]:
-    func_list: list[TextProcFunc] = [
-        convert_to_lower,
-        remove_punctuation,
-        tokenize,
-        partial(remove_stop_words, stop_words=stop_words),
-        stem_tokens,
-    ]
+def clean_text(text: str, stop_words: list[str] | None = None) -> list[str]:
+    func_list: list[TextProcFunc]
+    if stop_words is None:
+        func_list = [
+            convert_to_lower,
+            remove_punctuation,
+            tokenize,
+            stem_tokens,
+        ]
+    else:
+        func_list = [
+            convert_to_lower,
+            remove_punctuation,
+            tokenize,
+            partial(remove_stop_words, stop_words=stop_words),
+            stem_tokens,
+        ]
+
     return reduce(lambda acc, func: func(acc), func_list, text)
 
 

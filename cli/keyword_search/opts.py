@@ -1,5 +1,6 @@
 from argparse import ArgumentParser, Namespace
 
+from .general import BM25_SEARCH_RESULTS_LIMIT
 from .inverted_index import BM25_B, BM25_K1
 
 
@@ -61,6 +62,34 @@ def get_opts() -> tuple[Namespace, ArgumentParser]:
     )
     bm25_tf_parser.add_argument(
         "bm25tf_b",
+        type=float,
+        nargs="?",
+        default=BM25_B,
+        help="Tunable BM25 b parameter",
+    )
+
+    bm25_search_parser = subparsers.add_parser(
+        "bm25search",
+        help="Perform a BM25 search using the specified query",
+    )
+    bm25_search_parser.add_argument(
+        "bm25search_query", type=str, help="Query for the BM25 search"
+    )
+    bm25_search_parser.add_argument(
+        "--limit",
+        type=int,
+        default=BM25_SEARCH_RESULTS_LIMIT,
+        help="Max number of results to display",
+    )
+    bm25_search_parser.add_argument(
+        "bm25search_k1",
+        type=float,
+        nargs="?",
+        default=BM25_K1,
+        help="Tunable BM25 k1 parameter",
+    )
+    bm25_search_parser.add_argument(
+        "bm25search_b",
         type=float,
         nargs="?",
         default=BM25_B,

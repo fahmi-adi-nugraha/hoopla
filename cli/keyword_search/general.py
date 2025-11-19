@@ -7,6 +7,7 @@ from .keyword_search import get_movies_matching_keywords, get_stopwords
 
 MOVIES_FILE_PATH = Path("data/movies.json")
 STOPWORDS_FILE = Path("data/stopwords.txt")
+BM25_SEARCH_RESULTS_LIMIT = 5
 
 
 def load_index(inverted_index: InvertedIndex) -> None:
@@ -72,6 +73,21 @@ def bm25_idf_command(inv_idx: InvertedIndex, term: str) -> None:
     print(f"BM25 IDF score of '{term}': {bm25idf:.2f}")
 
 
+def bm25_search_command(
+    inv_idx: InvertedIndex,
+    query: str,
+    limit: int = BM25_SEARCH_RESULTS_LIMIT,
+    k1: float = BM25_K1,
+    b: float = BM25_B,
+) -> None:
+    load_index(inv_idx)
+    top_matches = inv_idx.bm25_search(query, limit, k1, b)
+    for i, (doc_id, bm25_score) in enumerate(top_matches):
+        print(
+            f"{i + 1}. ({doc_id}) {inv_idx.docmap[doc_id]['title']} - Score: {bm25_score:.2f}"
+        )
+
+
 def proc(inv_idx: InvertedIndex, args: Namespace, arg_parser: ArgumentParser) -> None:
     match args.command:
         case "search":
@@ -94,5 +110,13 @@ def proc(inv_idx: InvertedIndex, args: Namespace, arg_parser: ArgumentParser) ->
             )
         case "bm25idf":
             bm25_idf_command(inv_idx, args.bm25idf_term)
+        case "bm25search":
+            bm25_search_command(
+                inv_idx,
+                args.bm25search_query,
+                args.limit,
+                args.bm25search_k1,
+                args.bm25search_b,
+            )
         case _:
             arg_parser.print_help()
