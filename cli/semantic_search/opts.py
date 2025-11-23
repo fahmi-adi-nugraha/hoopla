@@ -20,6 +20,12 @@ def get_opts() -> tuple[Namespace, ArgumentParser]:
     )
     embed_query_parser.add_argument("text", type=str, help="Query to embed")
 
+    search_parser = subparsers.add_parser("search", help="Perform semantic search")
+    search_parser.add_argument("text", type=str, help="Query to embed")
+    search_parser.add_argument(
+        "--limit", "-n", type=int, default=5, help="Number of results to display"
+    )
+
     args = parser.parse_args()
 
     return args, parser

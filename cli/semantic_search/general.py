@@ -3,6 +3,7 @@ from argparse import ArgumentParser, Namespace
 from semantic_search.semantic_search import (
     embed_query_text,
     embed_text,
+    search,
     verify_embeddings,
     verify_model,
 )
@@ -18,5 +19,7 @@ def proc(cli_opts: Namespace, opt_parser: ArgumentParser):
             verify_embeddings()
         case "embedquery":
             embed_query_text(cli_opts.text)
+        case "search":
+            search(cli_opts.text, cli_opts.limit)
         case _:
             opt_parser.print_help()

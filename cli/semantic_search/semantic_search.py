@@ -48,6 +48,33 @@ def embed_query_text(query: str) -> None:
     print(f"Shape: {embedding.shape}")
 
 
+def cosine_similarity(vec1: NDArray[np.float64], vec2: NDArray[np.float64]) -> float:
+    dot_product = np.dot(vec1, vec2)
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
+
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+
+    return dot_product / (norm1 * norm2)
+
+
+def search(query: str, limit: int) -> list[dict[str, float | str]]:
+    sem_search = SemanticSearch()
+    with open(Path(MOVIES_FILE_PATH), "r") as mfiles:
+        docs: list[dict[str, Any]] = json.load(mfiles)["movies"]
+
+    _ = sem_search.load_or_create_embeddings(docs)
+
+    results = sem_search.search(query, limit)
+    padding = 4
+    desc_limit = 80
+    for i, result in enumerate(results):
+        left_num = f"{i + 1}."
+        print(f"{left_num:<{padding}}{result['title']} (score: {result['score']:.4f})")
+        print(f"{' ':<{padding}}{result['description'][:desc_limit]} ...")
+
+
 class SemanticSearch:
     def __init__(self) -> None:
         self.embedding_cache_path = Path(CACHE_DIR, "movie_embeddings.npy")
@@ -96,3 +123,25 @@ class SemanticSearch:
                 self.document_map[doc["id"]] = doc
 
         return self.embeddings
+
+    def search(self, query: str, limit: int):
+        if self.embeddings is None:
+            raise ValueError(
+                "No embeddings loaded. Call `load_or_create_embeddings` first."
+            )
+
+        query_embedding = self.generate_embedding(query)
+        query_cosine_sim_scores: list[tuple[float, dict[str, int | str]]] = []
+        for doc, doc_embedding in zip(self.documents, self.embeddings):
+            cosim_score = cosine_similarity(query_embedding, doc_embedding)
+            query_cosine_sim_scores.append((cosim_score, doc))
+
+        query_cosine_sim_scores.sort(key=lambda x: x[0], reverse=True)
+        return [
+            {
+                "score": cosim_score,
+                "title": doc["title"],
+                "description": doc["description"],
+            }
+            for cosim_score, doc in query_cosine_sim_scores[:limit]
+        ]
