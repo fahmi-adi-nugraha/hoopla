@@ -39,6 +39,15 @@ def verify_embeddings() -> None:
     )
 
 
+def embed_query_text(query: str) -> None:
+    sem_search = SemanticSearch()
+    embedding = sem_search.generate_embedding(query)
+
+    print(f"Query: {query}")
+    print(f"First 5 dimensions: {embedding[:5]}")
+    print(f"Shape: {embedding.shape}")
+
+
 class SemanticSearch:
     def __init__(self) -> None:
         self.embedding_cache_path = Path(CACHE_DIR, "movie_embeddings.npy")

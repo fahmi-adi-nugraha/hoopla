@@ -15,6 +15,11 @@ def get_opts() -> tuple[Namespace, ArgumentParser]:
         help="Verify that the document embedding process was successful",
     )
 
+    embed_query_parser = subparsers.add_parser(
+        "embedquery", help="Create embedding for the query"
+    )
+    embed_query_parser.add_argument("text", type=str, help="Query to embed")
+
     args = parser.parse_args()
 
     return args, parser
