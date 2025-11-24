@@ -75,6 +75,27 @@ def search(query: str, limit: int) -> list[dict[str, float | str]]:
         print(f"{' ':<{padding}}{result['description'][:desc_limit]} ...")
 
 
+def chunk(text: str, chunk_size: int = 200) -> None:
+    text_tokens = text.split()
+    total_tokens = len(text_tokens)
+    i = 0
+    curr_idx = 0
+    prev_idx = 0
+    print(f"Chunking {len(text)} characters")
+    while prev_idx < total_tokens:
+        i += 1
+        curr_idx += chunk_size
+        if curr_idx > total_tokens:
+            chunk = " ".join(text_tokens[prev_idx:])
+        else:
+            chunk = " ".join(text_tokens[prev_idx:curr_idx])
+
+        num_prefix = f"{i}."
+        print(f"{num_prefix:<3}{chunk}")
+
+        prev_idx = curr_idx
+
+
 class SemanticSearch:
     def __init__(self) -> None:
         self.embedding_cache_path = Path(CACHE_DIR, "movie_embeddings.npy")

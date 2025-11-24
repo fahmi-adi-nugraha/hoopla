@@ -26,6 +26,14 @@ def get_opts() -> tuple[Namespace, ArgumentParser]:
         "--limit", "-n", type=int, default=5, help="Number of results to display"
     )
 
+    chunk_parser = subparsers.add_parser(
+        "chunk", help="Create smaller chunks from the provided text"
+    )
+    chunk_parser.add_argument("text", type=str, help="Text to chunk")
+    chunk_parser.add_argument(
+        "--chunk-size", "-n", type=int, default=200, help="Size of each chunk"
+    )
+
     args = parser.parse_args()
 
     return args, parser

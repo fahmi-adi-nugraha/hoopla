@@ -24,3 +24,9 @@ testpaths = [
 pythonpath = [
     "."
 ]
+
+[tool.basedpyright]
+exclude = [
+    "**/__pycache__",
+    "**/.venv"
+]
