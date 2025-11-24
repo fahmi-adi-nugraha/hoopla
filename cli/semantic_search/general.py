@@ -23,6 +23,6 @@ def proc(cli_opts: Namespace, opt_parser: ArgumentParser):
         case "search":
             search(cli_opts.text, cli_opts.limit)
         case "chunk":
-            chunk(cli_opts.text, cli_opts.chunk_size)
+            chunk(cli_opts.text, cli_opts.chunk_size, cli_opts.overlap)
         case _:
             opt_parser.print_help()

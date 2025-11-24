@@ -75,7 +75,7 @@ def search(query: str, limit: int) -> list[dict[str, float | str]]:
         print(f"{' ':<{padding}}{result['description'][:desc_limit]} ...")
 
 
-def chunk(text: str, chunk_size: int = 200) -> None:
+def chunk(text: str, chunk_size: int = 200, overlap: int = 0) -> None:
     text_tokens = text.split()
     total_tokens = len(text_tokens)
     i = 0
@@ -93,7 +93,8 @@ def chunk(text: str, chunk_size: int = 200) -> None:
         num_prefix = f"{i}."
         print(f"{num_prefix:<3}{chunk}")
 
-        prev_idx = curr_idx
+        # prev_idx = curr_idx
+        prev_idx = curr_idx - overlap
 
 
 class SemanticSearch:

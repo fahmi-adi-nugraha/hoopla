@@ -33,6 +33,9 @@ def get_opts() -> tuple[Namespace, ArgumentParser]:
     chunk_parser.add_argument(
         "--chunk-size", "-n", type=int, default=200, help="Size of each chunk"
     )
+    chunk_parser.add_argument(
+        "--overlap", type=int, default=0, help="Amount of overlap between each chunk"
+    )
 
     args = parser.parse_args()
 
