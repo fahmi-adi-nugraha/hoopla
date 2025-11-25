@@ -37,6 +37,24 @@ def get_opts() -> tuple[Namespace, ArgumentParser]:
         "--overlap", type=int, default=0, help="Amount of overlap between each chunk"
     )
 
+    semantic_chunk_parser = subparsers.add_parser(
+        "semantic_chunk", help="Create smaller chunks from the provided text"
+    )
+    semantic_chunk_parser.add_argument("text", type=str, help="Text to chunk")
+    semantic_chunk_parser.add_argument(
+        "--max-chunk-size",
+        "-n",
+        type=int,
+        default=200,
+        help="Maximum size of each chunk",
+    )
+    semantic_chunk_parser.add_argument(
+        "--overlap",
+        type=int,
+        default=0,
+        help="Amount of overlap between each chunk",
+    )
+
     args = parser.parse_args()
 
     return args, parser

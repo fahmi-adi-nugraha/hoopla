@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -76,6 +77,9 @@ def search(query: str, limit: int) -> list[dict[str, float | str]]:
 
 
 def chunk(text: str, chunk_size: int = 200, overlap: int = 0) -> None:
+    if overlap >= chunk_size:
+        raise ValueError("overlap must be smaller than the chunk-size")
+
     text_tokens = text.split()
     total_tokens = len(text_tokens)
     i = 0
@@ -93,7 +97,38 @@ def chunk(text: str, chunk_size: int = 200, overlap: int = 0) -> None:
         num_prefix = f"{i}."
         print(f"{num_prefix:<3}{chunk}")
 
-        # prev_idx = curr_idx
+        prev_idx = curr_idx - overlap
+
+
+def semantic_chunk(text: str, max_chunk_size: int = 4, overlap: int = 0) -> None:
+    if overlap >= max_chunk_size:
+        raise ValueError("overlap must be smaller than the max-chunk-size")
+
+    pre_chunked_text = re.split(r"(?<=[.!?])\s+", text)
+    total_pre_chunks = len(pre_chunked_text)
+    i = 0
+    curr_idx = 0
+    prev_idx = 0
+    print(f"Semantically chunking {len(text)} characters")
+    while curr_idx < total_pre_chunks:
+        i += 1
+
+        if i == 1:
+            curr_idx += max_chunk_size
+        else:
+            curr_idx += max_chunk_size - overlap
+
+        if curr_idx > total_pre_chunks:
+            chunk = " ".join(pre_chunked_text[prev_idx:])
+        else:
+            chunk = " ".join(pre_chunked_text[prev_idx:curr_idx])
+
+        num_prefix = f"{i}."
+        print(f"{num_prefix:<3}{chunk}")
+
+        if max_chunk_size == total_pre_chunks:
+            break
+
         prev_idx = curr_idx - overlap
 
 

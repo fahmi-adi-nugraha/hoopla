@@ -5,6 +5,7 @@ from semantic_search.semantic_search import (
     embed_query_text,
     embed_text,
     search,
+    semantic_chunk,
     verify_embeddings,
     verify_model,
 )
@@ -24,5 +25,7 @@ def proc(cli_opts: Namespace, opt_parser: ArgumentParser):
             search(cli_opts.text, cli_opts.limit)
         case "chunk":
             chunk(cli_opts.text, cli_opts.chunk_size, cli_opts.overlap)
+        case "semantic_chunk":
+            semantic_chunk(cli_opts.text, cli_opts.max_chunk_size, cli_opts.overlap)
         case _:
             opt_parser.print_help()
