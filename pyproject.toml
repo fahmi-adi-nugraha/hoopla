@@ -27,6 +27,19 @@ pythonpath = [
 
 [tool.basedpyright]
 exclude = [
+    "**/node_modules",
     "**/__pycache__",
-    "**/.venv"
+    "**/.venv",
+    "**/.[!/.]*/**"
 ]
+
+[tool.pyrefly]
+project-excludes = [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/*venv/**",
+    "**/.[!/.]*/**"
+]
+
+[tool.ty.environment]
+root = ["./cli"]

@@ -55,6 +55,10 @@ def get_opts() -> tuple[Namespace, ArgumentParser]:
         help="Amount of overlap between each chunk",
     )
 
+    embed_chunk_parser = subparsers.add_parser(
+        "embed_chunks", help="Chunk documents and create embeddings for each chunk"
+    )
+
     args = parser.parse_args()
 
     return args, parser

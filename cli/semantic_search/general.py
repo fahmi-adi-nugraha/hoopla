@@ -2,10 +2,11 @@ from argparse import ArgumentParser, Namespace
 
 from semantic_search.semantic_search import (
     chunk,
+    embed_chunks,
     embed_query_text,
     embed_text,
     search,
-    semantic_chunk,
+    semantic_chunk_pretty,
     verify_embeddings,
     verify_model,
 )
@@ -26,6 +27,10 @@ def proc(cli_opts: Namespace, opt_parser: ArgumentParser):
         case "chunk":
             chunk(cli_opts.text, cli_opts.chunk_size, cli_opts.overlap)
         case "semantic_chunk":
-            semantic_chunk(cli_opts.text, cli_opts.max_chunk_size, cli_opts.overlap)
+            semantic_chunk_pretty(
+                cli_opts.text, cli_opts.max_chunk_size, cli_opts.overlap
+            )
+        case "embed_chunks":
+            embed_chunks()
         case _:
             opt_parser.print_help()

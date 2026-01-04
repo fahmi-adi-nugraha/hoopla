@@ -100,7 +100,7 @@ def chunk(text: str, chunk_size: int = 200, overlap: int = 0) -> None:
         prev_idx = curr_idx - overlap
 
 
-def semantic_chunk(text: str, max_chunk_size: int = 4, overlap: int = 0) -> None:
+def semantic_chunk(text: str, max_chunk_size: int = 4, overlap: int = 0) -> list[str]:
     if overlap >= max_chunk_size:
         raise ValueError("overlap must be smaller than the max-chunk-size")
 
@@ -109,7 +109,7 @@ def semantic_chunk(text: str, max_chunk_size: int = 4, overlap: int = 0) -> None
     i = 0
     curr_idx = 0
     prev_idx = 0
-    print(f"Semantically chunking {len(text)} characters")
+    chunks: list[str] = []
     while curr_idx < total_pre_chunks:
         i += 1
 
@@ -123,23 +123,45 @@ def semantic_chunk(text: str, max_chunk_size: int = 4, overlap: int = 0) -> None
         else:
             chunk = " ".join(pre_chunked_text[prev_idx:curr_idx])
 
-        num_prefix = f"{i}."
-        print(f"{num_prefix:<3}{chunk}")
+        chunks.append(chunk)
 
         if max_chunk_size == total_pre_chunks:
             break
 
         prev_idx = curr_idx - overlap
 
+    return chunks
+
+
+def semantic_chunk_pretty(text: str, max_chunk_size: int = 4, overlap: int = 0) -> None:
+    if overlap >= max_chunk_size:
+        raise ValueError("overlap must be smaller than the max-chunk-size")
+
+    chunks = semantic_chunk(text, max_chunk_size, overlap)
+    print(f"Semantically chunking {len(text)} characters")
+    for i, chunk in enumerate(chunks):
+        num_prefix = f"{i}."
+        print(f"{num_prefix:<3}{chunk}")
+
+
+def embed_chunks() -> None:
+    chunked_sem_search = ChunkedSemanticSearch()
+    with open(Path(MOVIES_FILE_PATH), "r") as mfiles:
+        docs: list[dict[str, Any]] = json.load(mfiles)["movies"]
+
+    embeddings = chunked_sem_search.load_or_create_chunk_embeddings(docs)
+
+    print(f"Generated {len(embeddings)} chunked embeddings")
+
 
 class SemanticSearch:
-    def __init__(self) -> None:
+    def __init__(self, model_name: str = EMBEDDING_MODEL) -> None:
         self.embedding_cache_path = Path(CACHE_DIR, "movie_embeddings.npy")
 
-        self.model = SentenceTransformer(EMBEDDING_MODEL)
+        self.model = SentenceTransformer(model_name)
         self.embeddings: list[NDArray[np.float64]] | None = None
         self.documents: list[dict[str, Any]] | None = None
-        self.document_map: dict[int, dict[str, Any]] | None = {}
+        self.document_map: dict[int, dict[str, Any]] | None = None
 
     def generate_embedding(self, text: str) -> NDArray[np.float64]:
         if text == "" or text.isspace():
@@ -152,6 +174,7 @@ class SemanticSearch:
     def build_embeddings(self, documents: list[dict[str, Any]]) -> NDArray[np.float64]:
         self.documents = documents
         doc_text: list[str] = []
+        self.document_map = {}
         for doc in self.documents:
             self.document_map[doc["id"]] = doc
             doc_text.append(f"{doc['title']}: {doc['description']}")
@@ -170,7 +193,7 @@ class SemanticSearch:
     ) -> NDArray[np.float64]:
         if self.embedding_cache_path.exists():
             with open(self.embedding_cache_path, "rb") as ecache:
-                self.embeddings = np.load(ecache)
+                self.embeddings = np.load(ecache, allow_pickle=True)
         if self.embeddings is None or (len(self.embeddings) != len(documents)):
             self.embeddings = self.build_embeddings(documents)
 
@@ -202,3 +225,81 @@ class SemanticSearch:
             }
             for cosim_score, doc in query_cosine_sim_scores[:limit]
         ]
+
+
+class ChunkedSemanticSearch(SemanticSearch):
+    def __init__(self, model_name: str = EMBEDDING_MODEL) -> None:
+        super().__init__(model_name)
+        self.chunk_embeddings_cache_path = Path(CACHE_DIR, "chunk_embeddings.npy")
+        self.chunk_metadata_cache_path = Path(CACHE_DIR, "chunk_metadata.json")
+
+        self.chunk_embeddings = None
+        # self.chunk_metadata: list[dict[str, int]] = None
+        self.chunk_metadata: list[dict[str, int]] = []
+
+    def build_chunk_embeddings(
+        self, documents: list[dict[str, Any]]
+    ) -> list[NDArray[np.float64]]:
+        self.documents = documents
+        doc_chunks: list[str] = []
+        self.document_map = {}
+        # doc_metadata: dict[str, int] = {}
+        for doc in self.documents:
+            description = doc.get("description")
+            if description is None:
+                continue
+            description_chunks = semantic_chunk(description, 4, 1)
+            for i, desc_chunk in enumerate(description_chunks):
+                doc_chunks.append(desc_chunk)
+                self.chunk_metadata.append(
+                    {
+                        "movie_idx": doc["id"],
+                        "chunk_idx": i + 1,
+                        "total_chunks": len(description_chunks),
+                    }
+                )
+
+            self.document_map[doc["id"]] = doc
+
+        # self.chunk_metadata = doc_metadata
+        self.chunk_embeddings = self.model.encode(doc_chunks, show_progress_bar=True)
+
+        if not self.chunk_embeddings_cache_path.parent.exists():
+            self.chunk_embeddings_cache_path.parent.mkdir()
+
+        # print(f"Saving embeddings to {self.chunk_embeddings_cache_path}...")
+        with open(self.chunk_embeddings_cache_path, "wb") as ecache:
+            np.save(ecache, self.chunk_embeddings)
+
+        # print(f"Saving metadata to {self.chunk_metadata_cache_path}...")
+        with open(self.chunk_metadata_cache_path, "w") as mcache:
+            json.dump(
+                {"chunks": self.chunk_metadata, "total_chunks": len(doc_chunks)},
+                mcache,
+                indent=2,
+            )
+
+        # print("Saved all essential data. Returning embeddings.")
+
+        return self.chunk_embeddings
+
+    def load_or_create_chunk_embeddings(self, documents: list[dict]) -> np.ndarray:
+        if self.chunk_embeddings_cache_path.exists():
+            with open(self.chunk_embeddings_cache_path, "rb") as ecache:
+                self.chunk_embeddings = np.load(ecache, allow_pickle=True)
+
+        # Need to figure out another way to check whether the chunked embeddings for the
+        # current docs are correct. For now, will just check if they're None.
+        # if self.chunk_embeddings is None or (
+        #     len(self.chunk_embeddings) != len(documents)
+        # ):
+        if self.chunk_embeddings is None:
+            self.chunk_embeddings = self.build_chunk_embeddings(documents)
+
+        if self.documents is None:
+            self.documents = documents
+            self.document_map = {}
+            for doc in self.documents:
+                self.document_map[doc["id"]] = doc
+
+        return self.chunk_embeddings
