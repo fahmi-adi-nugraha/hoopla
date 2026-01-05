@@ -59,6 +59,14 @@ def get_opts() -> tuple[Namespace, ArgumentParser]:
         "embed_chunks", help="Chunk documents and create embeddings for each chunk"
     )
 
+    search_chunked = subparsers.add_parser(
+        "search_chunked", help="Perform semantic search on chunk embeddings"
+    )
+    search_chunked.add_argument("text", type=str, help="Query to embed")
+    search_chunked.add_argument(
+        "--limit", "-n", type=int, default=5, help="Number of results to display"
+    )
+
     args = parser.parse_args()
 
     return args, parser
