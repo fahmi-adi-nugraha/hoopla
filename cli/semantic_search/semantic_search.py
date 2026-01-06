@@ -1,9 +1,11 @@
 import json
 import re
+import string
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+from numpy.char import strip
 from numpy.typing import NDArray
 from sentence_transformers import SentenceTransformer
 
@@ -110,31 +112,44 @@ def semantic_chunk(text: str, max_chunk_size: int = 4, overlap: int = 0) -> list
     if overlap >= max_chunk_size:
         raise ValueError("overlap must be smaller than the max-chunk-size")
 
+    text_clean = text.strip()
+    if not text_clean:
+        return []
+
     pre_chunked_text = re.split(r"(?<=[.!?])\s+", text)
     total_pre_chunks = len(pre_chunked_text)
+
     i = 0
     curr_idx = 0
     prev_idx = 0
     chunks: list[str] = []
-    while curr_idx < total_pre_chunks:
-        i += 1
 
-        if i == 1:
-            curr_idx += max_chunk_size
-        else:
-            curr_idx += max_chunk_size - overlap
+    if total_pre_chunks == 1 and pre_chunked_text[0][-1] not in string.punctuation:
+        stripped_chunk = pre_chunked_text[0].strip()
+        if stripped_chunk:
+            chunks.append(stripped_chunk)
+    else:
+        while curr_idx < total_pre_chunks:
+            i += 1
 
-        if curr_idx > total_pre_chunks:
-            chunk = " ".join(pre_chunked_text[prev_idx:])
-        else:
-            chunk = " ".join(pre_chunked_text[prev_idx:curr_idx])
+            if i == 1:
+                curr_idx += max_chunk_size
+            else:
+                curr_idx += max_chunk_size - overlap
 
-        chunks.append(chunk)
+            if curr_idx > total_pre_chunks:
+                chunk = " ".join(pre_chunked_text[prev_idx:])
+            else:
+                chunk = " ".join(pre_chunked_text[prev_idx:curr_idx])
 
-        if max_chunk_size == total_pre_chunks:
-            break
+            chunk_clean = chunk.strip()
+            if chunk_clean:
+                chunks.append(chunk_clean)
 
-        prev_idx = curr_idx - overlap
+            if max_chunk_size == total_pre_chunks:
+                break
+
+            prev_idx = curr_idx - overlap
 
     return chunks
 
@@ -146,7 +161,7 @@ def semantic_chunk_pretty(text: str, max_chunk_size: int = 4, overlap: int = 0) 
     chunks = semantic_chunk(text, max_chunk_size, overlap)
     print(f"Semantically chunking {len(text)} characters")
     for i, chunk in enumerate(chunks):
-        num_prefix = f"{i}."
+        num_prefix = f"{i + 1}."
         print(f"{num_prefix:<3}{chunk}")
 
 
