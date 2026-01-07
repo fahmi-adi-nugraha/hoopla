@@ -4,6 +4,20 @@ from keyword_search.inverted_index import InvertedIndex
 from semantic_search.semantic_search import ChunkedSemanticSearch
 
 
+def normalize(scores: list[int | float]) -> list[float]:
+    if len(scores) == 0:
+        return []
+
+    min_score, max_score = min(scores), max(scores)
+    if min_score == max_score:
+        return [1.0 for _ in scores]
+
+    scores_normed: list[float] = []
+    for score in scores:
+        scores_normed.append((score - min_score) / (max_score - min_score))
+    return scores_normed
+
+
 class HybridSearch:
     def __init__(self, documents: list[dict[str, Any]]):
         self.documents = documents
