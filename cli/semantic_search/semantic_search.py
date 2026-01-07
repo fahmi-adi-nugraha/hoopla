@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from numpy.char import strip
 from numpy.typing import NDArray
 from sentence_transformers import SentenceTransformer
 

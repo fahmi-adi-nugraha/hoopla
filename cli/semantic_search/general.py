@@ -13,7 +13,7 @@ from semantic_search.semantic_search import (
 )
 
 
-def proc(cli_opts: Namespace, opt_parser: ArgumentParser):
+def proc(cli_opts: Namespace, opt_parser: ArgumentParser) -> None:
     match cli_opts.command:
         case "verify":
             verify_model()

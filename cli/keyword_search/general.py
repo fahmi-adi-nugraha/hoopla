@@ -1,13 +1,37 @@
 import sys
 from argparse import ArgumentParser, Namespace
-from pathlib import Path
 
 from .inverted_index import BM25_B, BM25_K1, InvertedIndex
-from .keyword_search import get_movies_matching_keywords, get_stopwords
+from .text_processing.text_processing import TextClean
 
-MOVIES_FILE_PATH = Path("data/movies.json")
-STOPWORDS_FILE = Path("data/stopwords.txt")
 BM25_SEARCH_RESULTS_LIMIT = 5
+
+
+def _get_movies_matching_keywords(
+    movie_idx: InvertedIndex, text_cleaner: TextClean, keywords: str
+) -> list[dict[str, int | str]]:
+    text_cleaner.result = keywords
+    keywords_clean = (
+        text_cleaner.convert_to_lower()
+        .remove_punctuation()
+        .tokenize()
+        .remove_stop_words()
+        .stem_tokens()
+        .result
+    )
+    movie_matches: list[dict[str, int | str]] = []
+    for keyword in keywords_clean:
+        doc_indexes = movie_idx.get_documents(keyword)
+        for doc_index in doc_indexes:
+            movie_matches.append(movie_idx.docmap[doc_index])
+            if len(movie_matches) == 5:
+                return movie_matches
+    return movie_matches
+
+
+def load_stopwords(self) -> None:
+    with open(self.stopwords_file_path, "r") as swf:
+        self.stopwords = swf.read().splitlines()
 
 
 def load_index(inverted_index: InvertedIndex) -> None:
@@ -21,18 +45,16 @@ def load_index(inverted_index: InvertedIndex) -> None:
         sys.exit(1)
 
 
-def search_command(inv_idx: InvertedIndex, query: str) -> None:
+def search_command(inv_idx: InvertedIndex, text_cleaner: TextClean, query: str) -> None:
     load_index(inv_idx)
     print(f"Searching for: {query}")
-    stopwords = get_stopwords(STOPWORDS_FILE)
-    movies = get_movies_matching_keywords(inv_idx, query, stopwords)
+    movies = _get_movies_matching_keywords(inv_idx, text_cleaner, query)
     for i, movie in enumerate(sorted(movies, key=lambda m: m["id"])):
         print(f"{i + 1}. {movie['title']}")
 
 
 def build_command(inv_idx: InvertedIndex) -> None:
-    stopwords = get_stopwords(STOPWORDS_FILE)
-    inv_idx.build(MOVIES_FILE_PATH, stopwords)
+    inv_idx.build()
 
 
 def tf_command(inv_idx: InvertedIndex, doc_id: int, term: str) -> None:
@@ -88,10 +110,16 @@ def bm25_search_command(
         )
 
 
-def proc(inv_idx: InvertedIndex, args: Namespace, arg_parser: ArgumentParser) -> None:
+# def proc(inv_idx: InvertedIndex, args: Namespace, arg_parser: ArgumentParser) -> None:
+def proc(
+    inv_idx: InvertedIndex,
+    text_cleaner: TextClean,
+    args: Namespace,
+    arg_parser: ArgumentParser,
+) -> None:
     match args.command:
         case "search":
-            search_command(inv_idx, args.query)
+            search_command(inv_idx, text_cleaner, args.query)
         case "build":
             build_command(inv_idx)
         case "tf":

@@ -7,13 +7,9 @@ from typing import Any
 
 from nltk.stem import PorterStemmer
 
-from .text_processing.text_processing import (
-    clean_text,
-    clean_text_finish,
-    clean_text_up_to_tokenize,
-    tokenize,
-)
+from .text_processing.text_processing import TextClean, tokenize
 
+DATA_DIR = "data"
 CACHE_DIR = "./cache"
 BM25_K1 = 1.5
 BM25_B = 0.75
@@ -28,22 +24,30 @@ class InvertedIndex:
         self.docmap_path: Path = Path(CACHE_DIR, "docmap.pkl")
         self.term_freq_path: Path = Path(CACHE_DIR, "term_frequencies.pkl")
         self.doc_lengths_path: Path = Path(CACHE_DIR, "doc_lengths.pkl")
+        self.movies_file_path: Path = Path(DATA_DIR, "movies.json")
 
+        self.stopwords: list[str] = []
         self.index: dict[str, set[int]] = {}
         self.docmap: dict[int, dict[str, int | str]] = {}
         self.term_frequencies: dict[int, Counter[str]] = {}
         self.__stemmer = PorterStemmer()
         self.doc_lengths: dict[int, int] = {}
+        self.text_cleaner: TextClean = TextClean(self.__stemmer)
 
     def __validate_term(self, term: str) -> None:
         term_tok = tokenize(term)
         if len(term_tok) > 1:
             raise ValueError("Expected only one term")
 
-    def __add_document(self, doc_id: int, text: str, stopwords: list[str]) -> None:
-        tokens = clean_text_up_to_tokenize(text)
-        self.doc_lengths[doc_id] = len(tokens)
-        tokens = clean_text_finish(tokens, stopwords)
+    def __add_document(self, doc_id: int, text: str) -> None:
+        # tokens = clean_text_up_to_tokenize(text)
+        # self.doc_lengths[doc_id] = len(tokens)
+        # tokens = clean_text_finish(tokens)
+        self.text_cleaner.result = text
+        self.doc_lengths[doc_id] = len(
+            self.text_cleaner.convert_to_lower().remove_punctuation().tokenize().result
+        )
+        tokens = self.text_cleaner.remove_punctuation().stem_tokens().result
         self.term_frequencies[doc_id] = Counter()
         for token in tokens:
             if token not in self.index:
@@ -59,19 +63,18 @@ class InvertedIndex:
             return []
         return sorted(doc_ids)
 
-    def build(self, movie_data_path: Path, stopwords: list[str]) -> None:
-        with open(movie_data_path, "r") as movie_data_file:
+    def build(self) -> None:
+        with open(self.movies_file_path, "r") as movie_data_file:
             movie_data: dict[str, list[dict[str, Any]]] = json.load(movie_data_file)
 
         for movie in movie_data["movies"]:
             doc_id: int = movie["id"]
             self.docmap[doc_id] = movie
 
-            self.__add_document(
-                doc_id, f"{movie['title']} {movie['description']}", stopwords
-            )
+            self.__add_document(doc_id, f"{movie['title']} {movie['description']}")
 
-        self.save(Path(CACHE_DIR))
+        # self.save(Path(CACHE_DIR))
+        self.save()
 
     def get_tf(self, doc_id: int, term: str) -> int:
         self.__validate_term(term)
@@ -117,7 +120,16 @@ class InvertedIndex:
     def bm25_search(
         self, query: str, limit: int, k1: float = BM25_K1, b: float = BM25_B
     ) -> list[tuple[int, float]]:
-        query_tokens = clean_text(query)
+        # query_tokens = clean_text(query, self.stopwords)
+        self.text_cleaner.result = query
+        query_tokens = (
+            self.text_cleaner.convert_to_lower()
+            .remove_punctuation()
+            .tokenize()
+            .remove_stop_words()
+            .stem_tokens()
+            .result
+        )
         scores: dict[int, float] = {}
         for query_token in query_tokens:
             for doc_id in self.index[query_token]:
@@ -132,7 +144,11 @@ class InvertedIndex:
         with open(file_path, "wb") as out_file:
             pickle.dump(data, out_file)
 
-    def save(self, cache_dir: Path) -> None:
+    # def save(self, cache_dir: Path) -> None:
+    def save(self) -> None:
+        # if not cache_dir.exists():
+        #     cache_dir.mkdir(exist_ok=True)
+        cache_dir = Path(CACHE_DIR)
         if not cache_dir.exists():
             cache_dir.mkdir(exist_ok=True)
 
