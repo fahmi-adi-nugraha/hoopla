@@ -2,23 +2,15 @@ import sys
 from argparse import ArgumentParser, Namespace
 
 from .inverted_index import BM25_B, BM25_K1, InvertedIndex
-from .text_processing.text_processing import TextClean
+from .text_processing.text_processing import TextProcessingContext, clean_text
 
 BM25_SEARCH_RESULTS_LIMIT = 5
 
 
 def _get_movies_matching_keywords(
-    movie_idx: InvertedIndex, text_cleaner: TextClean, keywords: str
+    movie_idx: InvertedIndex, ctx: TextProcessingContext, keywords: str
 ) -> list[dict[str, int | str]]:
-    text_cleaner.result = keywords
-    keywords_clean = (
-        text_cleaner.convert_to_lower()
-        .remove_punctuation()
-        .tokenize()
-        .remove_stop_words()
-        .stem_tokens()
-        .result
-    )
+    keywords_clean = clean_text(keywords, ctx)
     movie_matches: list[dict[str, int | str]] = []
     for keyword in keywords_clean:
         doc_indexes = movie_idx.get_documents(keyword)
@@ -45,10 +37,12 @@ def load_index(inverted_index: InvertedIndex) -> None:
         sys.exit(1)
 
 
-def search_command(inv_idx: InvertedIndex, text_cleaner: TextClean, query: str) -> None:
+def search_command(
+    inv_idx: InvertedIndex, ctx: TextProcessingContext, query: str
+) -> None:
     load_index(inv_idx)
     print(f"Searching for: {query}")
-    movies = _get_movies_matching_keywords(inv_idx, text_cleaner, query)
+    movies = _get_movies_matching_keywords(inv_idx, ctx, query)
     for i, movie in enumerate(sorted(movies, key=lambda m: m["id"])):
         print(f"{i + 1}. {movie['title']}")
 
@@ -110,16 +104,15 @@ def bm25_search_command(
         )
 
 
-# def proc(inv_idx: InvertedIndex, args: Namespace, arg_parser: ArgumentParser) -> None:
 def proc(
     inv_idx: InvertedIndex,
-    text_cleaner: TextClean,
+    txt_proc_ctx: TextProcessingContext,
     args: Namespace,
     arg_parser: ArgumentParser,
 ) -> None:
     match args.command:
         case "search":
-            search_command(inv_idx, text_cleaner, args.query)
+            search_command(inv_idx, txt_proc_ctx, args.query)
         case "build":
             build_command(inv_idx)
         case "tf":

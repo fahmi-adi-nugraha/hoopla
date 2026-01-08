@@ -7,7 +7,13 @@ from typing import Any
 
 from nltk.stem import PorterStemmer
 
-from .text_processing.text_processing import TextClean, tokenize
+from .text_processing.text_processing import (
+    TextProcessingContext,
+    clean_text,
+    clean_text_from_tokens,
+    clean_text_to_tokens,
+    tokenize,
+)
 
 DATA_DIR = "data"
 CACHE_DIR = "./cache"
@@ -19,7 +25,11 @@ BM25_B = 0.75
 
 
 class InvertedIndex:
-    def __init__(self):
+    def __init__(
+        self,
+        stemmer: PorterStemmer | None = None,
+        txt_proc_ctx: TextProcessingContext | None = None,
+    ):
         self.index_path: Path = Path(CACHE_DIR, "index.pkl")
         self.docmap_path: Path = Path(CACHE_DIR, "docmap.pkl")
         self.term_freq_path: Path = Path(CACHE_DIR, "term_frequencies.pkl")
@@ -30,9 +40,16 @@ class InvertedIndex:
         self.index: dict[str, set[int]] = {}
         self.docmap: dict[int, dict[str, int | str]] = {}
         self.term_frequencies: dict[int, Counter[str]] = {}
-        self.__stemmer = PorterStemmer()
+        if stemmer is None:
+            self.__stemmer = PorterStemmer()
+        else:
+            self.__stemmer = stemmer
         self.doc_lengths: dict[int, int] = {}
-        self.text_cleaner: TextClean = TextClean(self.__stemmer)
+        # self.text_cleaner: TextClean = TextClean(self.__stemmer)
+        if txt_proc_ctx is None:
+            self.txt_proc_ctx = TextProcessingContext(stemmer)
+        else:
+            self.txt_proc_ctx = txt_proc_ctx
 
     def __validate_term(self, term: str) -> None:
         term_tok = tokenize(term)
@@ -40,14 +57,9 @@ class InvertedIndex:
             raise ValueError("Expected only one term")
 
     def __add_document(self, doc_id: int, text: str) -> None:
-        # tokens = clean_text_up_to_tokenize(text)
-        # self.doc_lengths[doc_id] = len(tokens)
-        # tokens = clean_text_finish(tokens)
-        self.text_cleaner.result = text
-        self.doc_lengths[doc_id] = len(
-            self.text_cleaner.convert_to_lower().remove_punctuation().tokenize().result
-        )
-        tokens = self.text_cleaner.remove_punctuation().stem_tokens().result
+        tokens = clean_text_to_tokens(text, self.txt_proc_ctx)
+        self.doc_lengths[doc_id] = len(tokens)
+        tokens = clean_text_from_tokens(tokens, self.txt_proc_ctx)
         self.term_frequencies[doc_id] = Counter()
         for token in tokens:
             if token not in self.index:
@@ -73,7 +85,6 @@ class InvertedIndex:
 
             self.__add_document(doc_id, f"{movie['title']} {movie['description']}")
 
-        # self.save(Path(CACHE_DIR))
         self.save()
 
     def get_tf(self, doc_id: int, term: str) -> int:
@@ -120,16 +131,7 @@ class InvertedIndex:
     def bm25_search(
         self, query: str, limit: int, k1: float = BM25_K1, b: float = BM25_B
     ) -> list[tuple[int, float]]:
-        # query_tokens = clean_text(query, self.stopwords)
-        self.text_cleaner.result = query
-        query_tokens = (
-            self.text_cleaner.convert_to_lower()
-            .remove_punctuation()
-            .tokenize()
-            .remove_stop_words()
-            .stem_tokens()
-            .result
-        )
+        query_tokens = clean_text(query, self.txt_proc_ctx)
         scores: dict[int, float] = {}
         for query_token in query_tokens:
             for doc_id in self.index[query_token]:
@@ -144,10 +146,7 @@ class InvertedIndex:
         with open(file_path, "wb") as out_file:
             pickle.dump(data, out_file)
 
-    # def save(self, cache_dir: Path) -> None:
     def save(self) -> None:
-        # if not cache_dir.exists():
-        #     cache_dir.mkdir(exist_ok=True)
         cache_dir = Path(CACHE_DIR)
         if not cache_dir.exists():
             cache_dir.mkdir(exist_ok=True)
