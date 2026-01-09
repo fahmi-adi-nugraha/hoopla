@@ -62,20 +62,3 @@ def clean_text(text: str, ctx: TextProcessingContext) -> list[str]:
         stem_tokens,
     ]
     return _run_pipeline(text, ctx, steps)
-
-
-def clean_text_to_tokens(text: str, ctx: TextProcessingContext) -> list[str]:
-    steps = [
-        convert_to_lower,
-        remove_punctuation,
-        tokenize,
-    ]
-    return _run_pipeline(text, ctx, steps)
-
-
-def clean_text_from_tokens(tokens: list[str], ctx: TextProcessingContext) -> list[str]:
-    steps = [
-        remove_stop_words,
-        stem_tokens,
-    ]
-    return _run_pipeline(tokens, ctx, steps)

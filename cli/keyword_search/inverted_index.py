@@ -7,13 +7,7 @@ from typing import Any
 
 from nltk.stem import PorterStemmer
 
-from .text_processing.text_processing import (
-    TextProcessingContext,
-    clean_text,
-    clean_text_from_tokens,
-    clean_text_to_tokens,
-    tokenize,
-)
+from .text_processing.text_processing import TextProcessingContext, clean_text, tokenize
 
 DATA_DIR = "data"
 CACHE_DIR = "./cache"
@@ -57,9 +51,8 @@ class InvertedIndex:
             raise ValueError("Expected only one term")
 
     def __add_document(self, doc_id: int, text: str) -> None:
-        tokens = clean_text_to_tokens(text, self.txt_proc_ctx)
+        tokens = clean_text(text, self.txt_proc_ctx)
         self.doc_lengths[doc_id] = len(tokens)
-        tokens = clean_text_from_tokens(tokens, self.txt_proc_ctx)
         self.term_frequencies[doc_id] = Counter()
         for token in tokens:
             if token not in self.index:
@@ -133,11 +126,11 @@ class InvertedIndex:
     ) -> list[tuple[int, float]]:
         query_tokens = clean_text(query, self.txt_proc_ctx)
         scores: dict[int, float] = {}
-        for query_token in query_tokens:
-            for doc_id in self.index[query_token]:
-                if doc_id not in scores:
-                    scores[doc_id] = 0
-                scores[doc_id] += self.bm25(doc_id, query_token, k1, b)
+        for doc_id in self.docmap:
+            score = 0
+            for query_token in query_tokens:
+                score += self.bm25(doc_id, query_token, k1, b)
+            scores[doc_id] = score
 
         top_docs = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:limit]
         return top_docs
