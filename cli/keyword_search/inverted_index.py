@@ -15,9 +15,6 @@ BM25_K1 = 1.5
 BM25_B = 0.75
 
 
-# TODO: Figure out how to make the stemming faster for getting the tf and the idf
-
-
 class InvertedIndex:
     def __init__(
         self,
@@ -39,7 +36,6 @@ class InvertedIndex:
         else:
             self.__stemmer = stemmer
         self.doc_lengths: dict[int, int] = {}
-        # self.text_cleaner: TextClean = TextClean(self.__stemmer)
         if txt_proc_ctx is None:
             self.txt_proc_ctx = TextProcessingContext(stemmer)
         else:
