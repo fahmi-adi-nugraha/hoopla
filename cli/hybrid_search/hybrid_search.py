@@ -3,11 +3,11 @@ from pathlib import Path
 from typing import Any
 
 from keyword_search.inverted_index import InvertedIndex
-from scipy.stats import sem
 from semantic_search.semantic_search import ChunkedSemanticSearch
 
 DATA_DIR = "data"
-HYBRID_ALPHA = 0.5
+WEIGHTED_ALPHA = 0.5
+RRF_K = 60
 HYBRID_LIMIT = 5
 
 
@@ -50,36 +50,35 @@ class HybridSearch:
     ) -> dict[int, float]:
         doc_ids, scores = zip(*score_map)
         normed_scores = self.normalize(scores)
-        # return list(zip(doc_ids, normed_scores))
         return dict(zip(doc_ids, normed_scores))
 
     def hybrid_score(
-        self, bm25_score: float, semantic_score: float, alpha: float = HYBRID_ALPHA
+        self, bm25_score: float, semantic_score: float, alpha: float = WEIGHTED_ALPHA
     ) -> float:
         return alpha * bm25_score + (1 - alpha) * semantic_score
 
     def weighted_search(
-        self, query: str, alpha: float = HYBRID_ALPHA, limit=HYBRID_LIMIT
+        self, query: str, alpha: float = WEIGHTED_ALPHA, limit=HYBRID_LIMIT
     ):
         new_limit = limit * 500
 
         bm25_scores = self._bm25_search(query, new_limit)
         bm25_scores_normed = self._normalize_with_doc_id(bm25_scores)
 
-        cosine_scores = [
+        semantic_scores = [
             (doc["id"], doc["score"])
             for doc in self.semantic_search.search_chunks(query, new_limit)
         ]
-        cosine_scores_normed = self._normalize_with_doc_id(cosine_scores)
+        semantic_scores_normed = self._normalize_with_doc_id(semantic_scores)
 
         final_scores = []
         doc_ids = set(
-            list(bm25_scores_normed.keys()) + list(cosine_scores_normed.keys())
+            list(bm25_scores_normed.keys()) + list(semantic_scores_normed.keys())
         )
         for doc_id in doc_ids:
             doc = self.idx.docmap[doc_id]
             bm25_score = bm25_scores_normed.get(doc_id, 0)
-            semantic_score = cosine_scores_normed.get(doc_id, 0)
+            semantic_score = semantic_scores_normed.get(doc_id, 0)
             final_scores.append(
                 {
                     "id": doc["id"],
@@ -97,5 +96,51 @@ class HybridSearch:
             :limit
         ]
 
-    def rrf_search(self, query, k, limit=10):
-        raise NotImplementedError("RRF hybrid search is not implemented yet.")
+    def rrf_score(self, rank: int, k: int) -> float:
+        return 1 / (k + rank)
+
+    # We assume that the scores have already been sorted
+    def _get_rrf_score_with_rank(
+        self, scores: list[tuple[int, float]], k: int
+    ) -> dict[int, tuple[float, int]]:
+        # ) -> tuple[dict[int, int], dict[int, float]]:
+        rrf_scores = {}
+        for i, (doc_id, score) in enumerate(scores):
+            rank = i + 1
+            rrf_scores[doc_id] = (self.rrf_score(rank, k), rank)
+        return rrf_scores
+
+    def rrf_search(self, query: str, k: int = RRF_K, limit: int = HYBRID_LIMIT):
+        new_limit = limit * 500
+
+        bm25_scores = self._bm25_search(query, new_limit)
+        bm25_rrf = self._get_rrf_score_with_rank(bm25_scores, k)
+
+        semantic_scores = [
+            (doc["id"], doc["score"])
+            for doc in self.semantic_search.search_chunks(query, new_limit)
+        ]
+        semantic_rrf = self._get_rrf_score_with_rank(semantic_scores, k)
+
+        final_scores = []
+        doc_ids = set(list(bm25_rrf.keys()) + list(semantic_rrf.keys()))
+        for doc_id in doc_ids:
+            doc = self.idx.docmap[doc_id]
+            bm25_vals = bm25_rrf.get(doc_id)
+            semantic_vals = semantic_rrf.get(doc_id)
+            if bm25_vals is None or semantic_vals is None:
+                continue
+            bm25_score, bm25_rank = bm25_vals
+            semantic_score, semantic_rank = semantic_vals
+            final_scores.append(
+                {
+                    "id": doc["id"],
+                    "title": doc["title"],
+                    "description": doc["description"][:100],
+                    "rrf_score": bm25_score + semantic_score,
+                    "bm25_rank": bm25_rank,
+                    "semantic_rank": semantic_rank,
+                }
+            )
+
+        return sorted(final_scores, key=lambda x: x["rrf_score"], reverse=True)[:limit]

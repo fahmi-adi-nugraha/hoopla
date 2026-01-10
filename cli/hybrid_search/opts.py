@@ -1,6 +1,6 @@
 from argparse import ArgumentParser, Namespace
 
-from hybrid_search.hybrid_search import HYBRID_ALPHA, HYBRID_LIMIT
+from hybrid_search.hybrid_search import HYBRID_LIMIT, RRF_K, WEIGHTED_ALPHA
 
 
 def get_opts() -> tuple[Namespace, ArgumentParser]:
@@ -17,13 +17,20 @@ def get_opts() -> tuple[Namespace, ArgumentParser]:
     weighted_search_parser = subparsers.add_parser(
         "weighted-search", help="Perform a weighted search using the query."
     )
+    weighted_search_parser.add_argument("text", type=str, help="Search query")
     weighted_search_parser.add_argument(
-        "text", type=str, default=HYBRID_ALPHA, help="Search query"
+        "--alpha", type=float, default=WEIGHTED_ALPHA, help="Alpha value"
     )
     weighted_search_parser.add_argument(
-        "--alpha", type=float, default=HYBRID_ALPHA, help="Alpha value"
+        "--limit", type=int, default=HYBRID_LIMIT, help="The number of results to show"
     )
-    weighted_search_parser.add_argument(
+
+    rrf_search_parser = subparsers.add_parser(
+        "rrf-search", help="Perform a Reciprocal Rank Fusion search using the query."
+    )
+    rrf_search_parser.add_argument("text", type=str, help="Search query")
+    rrf_search_parser.add_argument("-k", type=int, default=RRF_K, help="k value")
+    rrf_search_parser.add_argument(
         "--limit", type=int, default=HYBRID_LIMIT, help="The number of results to show"
     )
 
