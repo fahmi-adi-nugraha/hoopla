@@ -14,3 +14,6 @@ data
 cache
 tests
 scripts
+
+# Secrets
+.env
