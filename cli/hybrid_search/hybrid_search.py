@@ -103,7 +103,6 @@ class HybridSearch:
     def _get_rrf_score_with_rank(
         self, scores: list[tuple[int, float]], k: int
     ) -> dict[int, tuple[float, int]]:
-        # ) -> tuple[dict[int, int], dict[int, float]]:
         rrf_scores = {}
         for i, (doc_id, score) in enumerate(scores):
             rank = i + 1

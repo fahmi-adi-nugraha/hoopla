@@ -33,6 +33,9 @@ def get_opts() -> tuple[Namespace, ArgumentParser]:
     rrf_search_parser.add_argument(
         "--limit", type=int, default=HYBRID_LIMIT, help="The number of results to show"
     )
+    rrf_search_parser.add_argument(
+        "--enhance", type=str, choices=["spell"], help="Query enhancement method"
+    )
 
     args = parser.parse_args()
 
