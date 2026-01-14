@@ -2,7 +2,6 @@ from argparse import ArgumentParser, Namespace
 
 from hybrid_search.hybrid_search import HybridSearch
 from hybrid_search.utils_enhance import QueryEnhancer
-from sympy.functions.elementary.tests.test_trigonometric import en
 
 
 def normalize(searcher: HybridSearch, scores: list[int | float]) -> None:
@@ -35,7 +34,7 @@ def rrf_search(
     enhancement_type: str | None,
 ):
     query_enhanced = query_enhancer.enhance(query, enhancement_type)
-    results = searcher.rrf_search(query, k, limit)
+    results = searcher.rrf_search(query_enhanced, k, limit)
     padding = 4
     if enhancement_type is not None and enhancement_type:
         print(f"Enhanced query ({enhancement_type}): '{query}' -> '{query_enhanced}'")

@@ -11,9 +11,11 @@ from hybrid_search.utils_enhance import QueryEnhancer
 
 def main() -> None:
     load_dotenv()
+
     api_key = os.getenv("GEMINI_API_KEY")
+
     if api_key is None:
-        print(f"Error: Missing Gemini API key")
+        print("Error: Missing Gemini API key")
         sys.exit(1)
 
     cli_opts, cli_parser = get_opts()
