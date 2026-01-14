@@ -33,7 +33,6 @@ class QueryEnhancer:
 
     def __enhance_by_rewriting(self, query: str) -> str:
         prompt = f"""Rewrite this movie search query to be more specific and searchable.
-
         
         Original: "{query}"
 
@@ -60,6 +59,33 @@ class QueryEnhancer:
 
         return response.text
 
+    def __enhance_with_expansion(self, query: str) -> str:
+        prompt = f"""Expand this movie search query with related terms.
+
+        Add synonyms and related concepts that might appear in movie descriptions.
+        Keep expansions relevant and focused.
+        Try not to go overboard with the amount of additional terms. You should add a
+        maximum of ten terms. This means that only the terms that best capture the
+        intent of the user should be added so you really need to be selective.
+        This will be appended to the original query.
+
+        Examples:
+
+        - "scary bear movie" -> "scary horror grizzly bear movie terrifying film"
+        - "action movie with bear" -> "action thriller bear chase fight adventure"
+        - "comedy with bear" -> "comedy funny bear humor lighthearted"
+
+        Make sure that final result does not have any quotes around it.
+
+        Original: "{query}"
+        """
+
+        response = self.client.models.generate_content(
+            model=self.model_name, contents=prompt
+        )
+
+        return response.text
+
     def enhance(self, query: str, enhancement_type: str | None = None) -> str:
         # Need to add error handling later
         match enhancement_type:
@@ -67,6 +93,8 @@ class QueryEnhancer:
                 query = self.__enhance_spelling(query)
             case "rewrite":
                 query = self.__enhance_by_rewriting(query)
+            case "expand":
+                query = self.__enhance_with_expansion(query)
             case _:
                 pass
 
