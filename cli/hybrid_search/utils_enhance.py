@@ -86,9 +86,9 @@ class QueryEnhancer:
 
         return response.text
 
-    def enhance(self, query: str, enhancement_type: str | None = None) -> str:
+    def enhance(self, query: str, enhancement_method: str | None = None) -> str:
         # Need to add error handling later
-        match enhancement_type:
+        match enhancement_method:
             case "spell":
                 query = self.__enhance_spelling(query)
             case "rewrite":

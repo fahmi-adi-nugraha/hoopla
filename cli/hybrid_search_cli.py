@@ -7,6 +7,7 @@ from hybrid_search.general import proc
 from hybrid_search.hybrid_search import HybridSearch, load_documents
 from hybrid_search.opts import get_opts
 from hybrid_search.utils_enhance import QueryEnhancer
+from hybrid_search.utils_rerank import LLMReranker
 
 
 def main() -> None:
@@ -23,9 +24,10 @@ def main() -> None:
     docs = load_documents()
     search = HybridSearch(docs)
     query_enhancer = QueryEnhancer(api_key)
+    reranker = LLMReranker(api_key)
 
     try:
-        proc(cli_opts, cli_parser, search, query_enhancer)
+        proc(cli_opts, cli_parser, search, query_enhancer, reranker)
     except Exception as e:
         print(f"Error: {e}")
         sys.exit(1)

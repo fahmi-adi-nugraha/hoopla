@@ -2,6 +2,9 @@ from argparse import ArgumentParser, Namespace
 
 from hybrid_search.hybrid_search import HybridSearch
 from hybrid_search.utils_enhance import QueryEnhancer
+from hybrid_search.utils_rerank import LLMReranker
+
+HYBRID_DESCRIPTION_LENGTH = 100
 
 
 def normalize(searcher: HybridSearch, scores: list[int | float]) -> None:
@@ -21,31 +24,40 @@ def weighted_search(searcher: HybridSearch, query: str, alpha: float, limit: int
         print(
             f"{' ':<{padding}}BM25: {result['bm25_score']:.4f}, Semantic: {result['semantic_score']:.4f}"
         )
-        print(f"{' ':<{padding}}{result['description']}...")
+        print(f"{' ':<{padding}}{result['description'][:HYBRID_DESCRIPTION_LENGTH]}...")
     pass
 
 
 def rrf_search(
     searcher: HybridSearch,
     query_enhancer: QueryEnhancer,
+    reranker: LLMReranker,
     query: str,
     k: int,
     limit: int,
-    enhancement_type: str | None,
+    query_enhancement_method: str | None,
+    reranking_method: str | None,
 ):
-    query_enhanced = query_enhancer.enhance(query, enhancement_type)
+    query_enhanced = query_enhancer.enhance(query, query_enhancement_method)
     results = searcher.rrf_search(query_enhanced, k, limit)
+    if reranking_method is not None and reranking_method:
+        results = reranker.rerank(query_enhanced, results, reranking_method)
+        print(f"Reranking top {limit} results using {reranking_method}...")
     padding = 4
-    if enhancement_type is not None and enhancement_type:
-        print(f"Enhanced query ({enhancement_type}): '{query}' -> '{query_enhanced}'")
+    if query_enhancement_method is not None and query_enhancement_method:
+        print(
+            f"Enhanced query ({query_enhancement_method}): '{query}' -> '{query_enhanced}'"
+        )
+    print(f"Reciprocal Rank Fusion results for '{query_enhanced}' (k={k}):\n")
     for i, result in enumerate(results):
         left_num = f"{i + 1}."
         print(f"{left_num:<{padding}}{result['title']}")
+        print(f"{' ':<{padding}}Rerank Score: {result['rerank_score']:.4f}")
         print(f"{' ':<{padding}}RRF Score: {result['rrf_score']:.4f}")
         print(
             f"{' ':<{padding}}BM25 Rank: {result['bm25_rank']}, Semantic Rank: {result['semantic_rank']}"
         )
-        print(f"{' ':<{padding}}{result['description']}...")
+        print(f"{' ':<{padding}}{result['description'][:HYBRID_DESCRIPTION_LENGTH]}...")
 
 
 def proc(
@@ -53,6 +65,7 @@ def proc(
     opt_parser: ArgumentParser,
     searcher: HybridSearch,
     query_enhancer: QueryEnhancer,
+    reranker: LLMReranker,
 ) -> None:
     match cli_opts.command:
         case "normalize":
@@ -63,10 +76,12 @@ def proc(
             rrf_search(
                 searcher,
                 query_enhancer,
+                reranker,
                 cli_opts.text,
                 cli_opts.k,
                 cli_opts.limit,
                 cli_opts.enhance,
+                cli_opts.rerank_method,
             )
         case _:
             opt_parser.print_help()

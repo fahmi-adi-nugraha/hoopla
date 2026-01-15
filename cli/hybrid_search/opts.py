@@ -39,6 +39,12 @@ def get_opts() -> tuple[Namespace, ArgumentParser]:
         choices=["spell", "rewrite", "expand"],
         help="Query enhancement method",
     )
+    rrf_search_parser.add_argument(
+        "--rerank-method",
+        type=str,
+        choices=["individual"],
+        help="Re-ranking method",
+    )
 
     args = parser.parse_args()
 

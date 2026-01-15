@@ -83,7 +83,7 @@ class HybridSearch:
                 {
                     "id": doc["id"],
                     "title": doc["title"],
-                    "description": doc["description"][:100],
+                    "description": doc["description"],
                     "hybrid_score": self.hybrid_score(
                         bm25_score, semantic_score, alpha
                     ),
@@ -109,7 +109,9 @@ class HybridSearch:
             rrf_scores[doc_id] = (self.rrf_score(rank, k), rank)
         return rrf_scores
 
-    def rrf_search(self, query: str, k: int = RRF_K, limit: int = HYBRID_LIMIT):
+    def rrf_search(
+        self, query: str, k: int = RRF_K, limit: int = HYBRID_LIMIT
+    ) -> list[dict[str, str | int | float]]:
         new_limit = limit * 500
 
         bm25_scores = self._bm25_search(query, new_limit)
@@ -135,7 +137,7 @@ class HybridSearch:
                 {
                     "id": doc["id"],
                     "title": doc["title"],
-                    "description": doc["description"][:100],
+                    "description": doc["description"],
                     "rrf_score": bm25_score + semantic_score,
                     "bm25_rank": bm25_rank,
                     "semantic_rank": semantic_rank,
