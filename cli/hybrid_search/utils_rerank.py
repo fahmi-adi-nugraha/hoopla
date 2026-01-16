@@ -1,3 +1,4 @@
+import json
 from time import sleep
 
 from google import genai
@@ -39,14 +40,47 @@ class LLMReranker:
                 model=self.model_name, contents=prompt
             )
 
-            # print(f"LLM response: {response.text}")
-
             result["rerank_score"] = float(response.text)
 
             results_reranked.append(result)
             sleep(RERANKER_SLEEP_LENGTH_SECONDS)
 
         return sorted(results_reranked, key=lambda x: x["rerank_score"], reverse=True)
+
+    def __rerank_batch(
+        self, query: str, results: list[dict[str, str | int | float]]
+    ) -> list[dict[str, str | int | float]]:
+        prompt = f"""Rank these movies by relevance to the search query.
+        
+        Query: "{query}"
+
+        Movies:
+        {results}
+
+        The movies are presented as the string representation of a Python list of
+        dictionaries where each dictionary contains information about a movie. The
+        dictionaries have 'id' field containing the ID of the movie and a 'description'
+        field containing a synopsis of the movie. Use the synopsis to determine how
+        relevant each movie is to the search query. Return ONLY the IDs in order of
+        relevance (best match first). Return an valid JSON list, nothing else. For
+        example:
+
+        [75, 12, 34, 2, 1]
+        """
+
+        response = self.client.models.generate_content(
+            model=self.model_name, contents=prompt
+        )
+
+        ranked_ids = json.loads(response.text)
+        results_reranked: list[dict[str, str | int | float]] = []
+        for i, movie_id in enumerate(ranked_ids):
+            for result in results:
+                if result["id"] == movie_id:
+                    result["rerank_rank"] = i + 1
+                    results_reranked.append(result)
+
+        return results_reranked
 
     def rerank(
         self,
@@ -58,6 +92,8 @@ class LLMReranker:
         match rerank_method:
             case "individual":
                 results_reranked = self.__rerank_individually(query, results)
+            case "batch":
+                results_reranked = self.__rerank_batch(query, results)
             case _:
                 pass
 

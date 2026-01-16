@@ -40,7 +40,9 @@ def rrf_search(
 ):
     query_enhanced = query_enhancer.enhance(query, query_enhancement_method)
     results = searcher.rrf_search(query_enhanced, k, limit)
+    reranking = False
     if reranking_method is not None and reranking_method:
+        reranking = True
         results = reranker.rerank(query_enhanced, results, reranking_method)
         print(f"Reranking top {limit} results using {reranking_method}...")
     padding = 4
@@ -52,7 +54,14 @@ def rrf_search(
     for i, result in enumerate(results):
         left_num = f"{i + 1}."
         print(f"{left_num:<{padding}}{result['title']}")
-        print(f"{' ':<{padding}}Rerank Score: {result['rerank_score']:.4f}")
+        if reranking:
+            match reranking_method:
+                case "individual":
+                    print(f"{' ':<{padding}}Rerank Score: {result['rerank_score']:.4f}")
+                case "batch":
+                    print(f"{' ':<{padding}}Rerank Rank: {result['rerank_rank']}")
+                case _:
+                    pass
         print(f"{' ':<{padding}}RRF Score: {result['rrf_score']:.4f}")
         print(
             f"{' ':<{padding}}BM25 Rank: {result['bm25_rank']}, Semantic Rank: {result['semantic_rank']}"
@@ -60,7 +69,7 @@ def rrf_search(
         print(f"{' ':<{padding}}{result['description'][:HYBRID_DESCRIPTION_LENGTH]}...")
 
 
-def proc(
+def run(
     cli_opts: Namespace,
     opt_parser: ArgumentParser,
     searcher: HybridSearch,

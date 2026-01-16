@@ -3,7 +3,7 @@ import os
 import sys
 
 from dotenv import load_dotenv
-from hybrid_search.general import proc
+from hybrid_search.general import run
 from hybrid_search.hybrid_search import HybridSearch, load_documents
 from hybrid_search.opts import get_opts
 from hybrid_search.utils_enhance import QueryEnhancer
@@ -27,7 +27,7 @@ def main() -> None:
     reranker = LLMReranker(api_key)
 
     try:
-        proc(cli_opts, cli_parser, search, query_enhancer, reranker)
+        run(cli_opts, cli_parser, search, query_enhancer, reranker)
     except Exception as e:
         print(f"Error: {e}")
         sys.exit(1)
