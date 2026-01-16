@@ -60,6 +60,10 @@ def rrf_search(
                     print(f"{' ':<{padding}}Rerank Score: {result['rerank_score']:.4f}")
                 case "batch":
                     print(f"{' ':<{padding}}Rerank Rank: {result['rerank_rank']}")
+                case "cross_encoder":
+                    print(
+                        f"{' ':<{padding}}Cross Encoder Score: {result['cross_encoder_score']:.4f}"
+                    )
                 case _:
                     pass
         print(f"{' ':<{padding}}RRF Score: {result['rrf_score']:.4f}")

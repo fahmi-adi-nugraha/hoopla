@@ -2,9 +2,11 @@ import json
 from time import sleep
 
 from google import genai
+from sentence_transformers.cross_encoder import CrossEncoder
 
 RERANKER_MODEL = "gemini-2.5-flash"
 RERANKER_SLEEP_LENGTH_SECONDS = 3
+RERANKER_CROSS_ENCODER_MODEL = "cross-encoder/ms-marco-TinyBERT-L2-v2"
 
 
 class LLMReranker:
@@ -14,6 +16,7 @@ class LLMReranker:
         else:
             self.model_name = RERANKER_MODEL
         self.client = genai.Client(api_key=api_key)
+        self.cross_encoder = CrossEncoder(RERANKER_CROSS_ENCODER_MODEL)
 
     def __rerank_individually(
         self, query: str, results: list[dict[str, str | int | float]]
@@ -82,6 +85,19 @@ class LLMReranker:
 
         return results_reranked
 
+    def __rerank_cross_encoder(
+        self, query: str, results: list[dict[str, str | int | float]]
+    ) -> list[dict[str, str | int | float]]:
+        pairs: list[tuple[str, str]] = []
+        for result in results:
+            pairs.append(
+                (query, f"{result.get('title', '')} - {result.get('document', '')}")
+            )
+        scores = self.cross_encoder.predict(pairs, show_progress_bar=True)
+        for score, result in zip(scores, results):
+            result["cross_encoder_score"] = score
+        return sorted(results, key=lambda x: x["cross_encoder_score"], reverse=True)
+
     def rerank(
         self,
         query: str,
@@ -94,6 +110,8 @@ class LLMReranker:
                 results_reranked = self.__rerank_individually(query, results)
             case "batch":
                 results_reranked = self.__rerank_batch(query, results)
+            case "cross_encoder":
+                results_reranked = self.__rerank_cross_encoder(query, results)
             case _:
                 pass
 
