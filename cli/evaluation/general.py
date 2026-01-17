@@ -23,11 +23,16 @@ def run(cli_opts: Namespace, parser: ArgumentParser) -> None:
         query = test_case["query"]
         results = hybrid_searcher.rrf_search(query, limit=limit)
         movies_retrieved = [result["title"] for result in results]
-        movies_relevant = [
+        movies_retrieved_relevant = [
             movie for movie in movies_retrieved if movie in test_case["relevant_docs"]
         ]
-        score = len(movies_relevant) / len(movies_retrieved)
+
+        precision = len(movies_retrieved_relevant) / len(movies_retrieved)
+        recall = len(movies_retrieved_relevant) / len(test_case["relevant_docs"])
+
+        print(f"k={limit}\n")
         print(f"{'-':<{padding}}Query: {query}")
-        print(f"{' ':<{padding}}- Precision@{limit}: {score:.4f}")
+        print(f"{' ':<{padding}}- Precision@{limit}: {precision:.4f}")
+        print(f"{' ':<{padding}}- Recall@{limit}: {recall:.4f}")
         print(f"{' ':<{padding}}- Retrieved: {', '.join(movies_retrieved)}")
-        print(f"{' ':<{padding}}- Relevant: {', '.join(movies_relevant)}")
+        print(f"{' ':<{padding}}- Relevant: {', '.join(movies_retrieved_relevant)}")
