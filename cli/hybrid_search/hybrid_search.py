@@ -11,22 +11,25 @@ RRF_K = 60
 HYBRID_LIMIT = 5
 
 
-def load_documents() -> list[dict[str, Any]]:
-    with open(Path(DATA_DIR, "movies.json"), "r") as mfiles:
-        return json.load(mfiles)["movies"]
-
-
 class HybridSearch:
-    def __init__(self, documents: list[dict[str, Any]]):
-        self.documents = documents
+    def __init__(self, documents: list[dict[str, Any]] | None = None):
+        if documents is None:
+            self.documents = self._load_documents()
+        else:
+            self.documents = documents
+
         self.semantic_search = ChunkedSemanticSearch()
-        self.semantic_search.load_or_create_chunk_embeddings(documents)
+        self.semantic_search.load_or_create_chunk_embeddings(self.documents)
 
         self.idx: InvertedIndex = InvertedIndex()
         if not self.idx.index_path.exists():
             self.idx.build()
         else:
             self.idx.load()
+
+    def _load_documents(self) -> list[dict[str, Any]]:
+        with open(Path(DATA_DIR, "movies.json"), "r") as mfiles:
+            return json.load(mfiles)["movies"]
 
     def _bm25_search(self, query: str, limit: int) -> list[tuple[int, float]]:
         self.idx.load()

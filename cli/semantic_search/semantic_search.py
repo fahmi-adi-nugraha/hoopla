@@ -310,7 +310,9 @@ class ChunkedSemanticSearch(SemanticSearch):
 
         return self.chunk_embeddings
 
-    def load_or_create_chunk_embeddings(self, documents: list[dict]) -> np.ndarray:
+    def load_or_create_chunk_embeddings(
+        self, documents: list[dict[str, Any]]
+    ) -> np.ndarray:
         if self.chunk_embeddings_cache_path.exists():
             with open(self.chunk_embeddings_cache_path, "rb") as ecache:
                 self.chunk_embeddings = np.load(ecache, allow_pickle=True)

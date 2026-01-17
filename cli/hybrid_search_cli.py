@@ -4,7 +4,7 @@ import sys
 
 from dotenv import load_dotenv
 from hybrid_search.general import run
-from hybrid_search.hybrid_search import HybridSearch, load_documents
+from hybrid_search.hybrid_search import HybridSearch
 from hybrid_search.opts import get_opts
 from hybrid_search.utils_enhance import QueryEnhancer
 from hybrid_search.utils_rerank import LLMReranker
@@ -21,8 +21,7 @@ def main() -> None:
 
     cli_opts, cli_parser = get_opts()
 
-    docs = load_documents()
-    search = HybridSearch(docs)
+    search = HybridSearch()
     query_enhancer = QueryEnhancer(api_key)
     reranker = LLMReranker(api_key)
 
