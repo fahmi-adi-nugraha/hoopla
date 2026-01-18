@@ -121,3 +121,46 @@ class LLMReranker:
                 pass
 
         return results_reranked
+
+    def evaluate(
+        self, query: str, results: list[dict[str, str | int | float]]
+    ) -> list[dict[str, str | int | float]]:
+        results_formatted = "\n".join(
+            [f"{result['title']} - {result['description']}" for result in results]
+        )
+
+        prompt = f"""Rate how relevant each result is to this query on a 0-3 sale:
+        
+        Query: "{query}"
+
+        Results:
+        {results_formatted}
+
+        Scale:
+        - 3: Highly relevant
+        - 2: Relevant
+        - 1: Marginally relevant
+        - 0: Not relevant
+
+        Do NOT give any numbers other than 0, 1, 2, or 3.
+
+        The results are presented as a single string with the following format:
+        - Each entry consists of a title and description separated by a hyphen
+        - Each entry is separated by a newline character
+
+        Use both the title and description when determining the relevance score.
+
+        Return ONLY the scores in the same order you were given the documents. Return a
+        valid JSON list, nothing else. For example:
+
+        [2, 0, 3, 2, 0, 1]"""
+
+        response = self.client.models.generate_content(
+            model=self.model_name, contents=prompt
+        )
+
+        evaluation_scores = json.loads(response.text)
+        for evaluation_score, result in zip(evaluation_scores, results):
+            result["evaluation_score"] = evaluation_score
+
+        return sorted(results, key=lambda x: x["evaluation_score"], reverse=True)

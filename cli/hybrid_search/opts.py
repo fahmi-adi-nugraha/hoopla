@@ -45,6 +45,11 @@ def get_opts() -> tuple[Namespace, ArgumentParser]:
         choices=["individual", "batch", "cross_encoder"],
         help="Re-ranking method",
     )
+    rrf_search_parser.add_argument(
+        "--evaluate",
+        action="store_true",
+        help="Evaluate the results of the RRF search",
+    )
 
     args = parser.parse_args()
 

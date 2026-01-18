@@ -37,6 +37,7 @@ def rrf_search(
     query: str,
     k: int,
     limit: int,
+    evaluate: bool,
     query_enhancement_method: str | None,
     reranking_method: str | None,
 ):
@@ -91,6 +92,16 @@ def rrf_search(
         )
         print(f"{' ':<{padding}}{result['description'][:HYBRID_DESCRIPTION_LENGTH]}...")
 
+    if evaluate:
+        results_evaluated = reranker.evaluate(query_enhanced, results)
+        for i, result in enumerate(results_evaluated):
+            if i == 0:
+                print()
+            left_num = f"{i + 1}."
+            print(
+                f"{left_num:<{padding}}{result['title']}: {result['evaluation_score']}/3"
+            )
+
 
 def run(
     cli_opts: Namespace,
@@ -114,6 +125,7 @@ def run(
                 cli_opts.text,
                 cli_opts.k,
                 cli_opts.limit,
+                cli_opts.evaluate,
                 cli_opts.enhance,
                 cli_opts.rerank_method,
             )
