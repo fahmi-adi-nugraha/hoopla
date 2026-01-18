@@ -17,3 +17,6 @@ scripts
 
 # Secrets
 .env
+
+# Logs
+**/*.log
