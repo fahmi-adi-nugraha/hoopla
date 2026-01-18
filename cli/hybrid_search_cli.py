@@ -7,6 +7,7 @@ from hybrid_search.general import run
 from hybrid_search.hybrid_search import HybridSearch
 from hybrid_search.opts import get_opts
 from hybrid_search.utils_enhance import QueryEnhancer
+from hybrid_search.utils_logging import new_logger
 from hybrid_search.utils_rerank import LLMReranker
 
 
@@ -21,12 +22,14 @@ def main() -> None:
 
     cli_opts, cli_parser = get_opts()
 
+    logger = new_logger()
+
     search = HybridSearch()
     query_enhancer = QueryEnhancer(api_key)
     reranker = LLMReranker(api_key)
 
     try:
-        run(cli_opts, cli_parser, search, query_enhancer, reranker)
+        run(cli_opts, cli_parser, logger, search, query_enhancer, reranker)
     except Exception as e:
         print(f"Error: {e}")
         sys.exit(1)

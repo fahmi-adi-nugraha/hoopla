@@ -19,7 +19,7 @@ class LLMReranker:
         self.cross_encoder = CrossEncoder(RERANKER_CROSS_ENCODER_MODEL)
 
     def __rerank_individually(
-        self, query: str, results: list[dict[str, str | int | float]]
+        self, query: str, results: list[dict[str, str | int | float]], limit: int
     ) -> list[dict[str, str | int | float]]:
         results_reranked: list[dict[str, str | int | float]] = []
         for result in results:
@@ -48,10 +48,12 @@ class LLMReranker:
             results_reranked.append(result)
             sleep(RERANKER_SLEEP_LENGTH_SECONDS)
 
-        return sorted(results_reranked, key=lambda x: x["rerank_score"], reverse=True)
+        return sorted(results_reranked, key=lambda x: x["rerank_score"], reverse=True)[
+            :limit
+        ]
 
     def __rerank_batch(
-        self, query: str, results: list[dict[str, str | int | float]]
+        self, query: str, results: list[dict[str, str | int | float]], limit: int
     ) -> list[dict[str, str | int | float]]:
         prompt = f"""Rank these movies by relevance to the search query.
         
@@ -83,10 +85,10 @@ class LLMReranker:
                     result["rerank_rank"] = i + 1
                     results_reranked.append(result)
 
-        return results_reranked
+        return results_reranked[:limit]
 
     def __rerank_cross_encoder(
-        self, query: str, results: list[dict[str, str | int | float]]
+        self, query: str, results: list[dict[str, str | int | float]], limit: int
     ) -> list[dict[str, str | int | float]]:
         pairs: list[tuple[str, str]] = []
         for result in results:
@@ -96,22 +98,25 @@ class LLMReranker:
         scores = self.cross_encoder.predict(pairs, show_progress_bar=True)
         for score, result in zip(scores, results):
             result["cross_encoder_score"] = score
-        return sorted(results, key=lambda x: x["cross_encoder_score"], reverse=True)
+        return sorted(results, key=lambda x: x["cross_encoder_score"], reverse=True)[
+            :limit
+        ]
 
     def rerank(
         self,
         query: str,
         results: list[dict[str, str | int | float]],
+        limit: int,
         rerank_method: str | None,
     ) -> list[dict[str, str | int | float]]:
         results_reranked: list[dict[str, str | int | float]]
         match rerank_method:
             case "individual":
-                results_reranked = self.__rerank_individually(query, results)
+                results_reranked = self.__rerank_individually(query, results, limit)
             case "batch":
-                results_reranked = self.__rerank_batch(query, results)
+                results_reranked = self.__rerank_batch(query, results, limit)
             case "cross_encoder":
-                results_reranked = self.__rerank_cross_encoder(query, results)
+                results_reranked = self.__rerank_cross_encoder(query, results, limit)
             case _:
                 pass
 

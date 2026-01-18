@@ -1,0 +1,4 @@
+2026-01-18T15:18:56 DEBUG original query: 'dinosaur'
+2026-01-18T15:18:56 DEBUG enhanced query: 'dinosaur'
+2026-01-18T15:19:12 DEBUG results of RRF search: Jurassic Park, A Sound of Thunder, Carnosaur, Anonymous Rex, Ice Age: Dawn of the Dinosaurs, The Crater Lake Monster, The Good Dinosaur, The Land Before Time XI: Invasion of the Tinysauruses, The Wizard, Lost River, Bringing Up Baby, A Claymation Christmas Celebration, When Dinosaurs Ruled the Earth, The Flintstones in Viva Rock Vegas, Dinocroc, Jeom-bak-i: Han-ban-do-eui Gong-ryong 3D, King Kong, Star Fox: Assault, Reign of Fire, The Land Before Time VII: The Stone of Cold Fire, Pee-wee's Big Adventure, Gojira tai Megagirasu: J\u00ee sh\u00f4metsu sakusen, Autism: The Musical, Digimon: The Movie, Littleman
+2026-01-18T15:19:12 DEBUG results of RRF search after reranking: The Good Dinosaur, Ice Age: Dawn of the Dinosaurs, When Dinosaurs Ruled the Earth, Dinocroc, Jurassic Park

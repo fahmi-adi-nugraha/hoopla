@@ -17,7 +17,7 @@ def run(cli_opts: Namespace, parser: ArgumentParser) -> None:
 
     hybrid_searcher = HybridSearch()
 
-    padding = 4
+    padding = 2
     limit = cli_opts.limit
     for test_case in golden_dataset["test_cases"]:
         query = test_case["query"]
@@ -29,10 +29,12 @@ def run(cli_opts: Namespace, parser: ArgumentParser) -> None:
 
         precision = len(movies_retrieved_relevant) / len(movies_retrieved)
         recall = len(movies_retrieved_relevant) / len(test_case["relevant_docs"])
+        f1 = 2 * (precision * recall) / (precision + recall)
 
         print(f"k={limit}\n")
         print(f"{'-':<{padding}}Query: {query}")
         print(f"{' ':<{padding}}- Precision@{limit}: {precision:.4f}")
         print(f"{' ':<{padding}}- Recall@{limit}: {recall:.4f}")
+        print(f"{' ':<{padding}}- F1 Score: {f1:.4f}")
         print(f"{' ':<{padding}}- Retrieved: {', '.join(movies_retrieved)}")
         print(f"{' ':<{padding}}- Relevant: {', '.join(movies_retrieved_relevant)}")

@@ -1,4 +1,5 @@
 from argparse import ArgumentParser, Namespace
+from logging import Logger
 
 from hybrid_search.hybrid_search import HybridSearch
 from hybrid_search.utils_enhance import QueryEnhancer
@@ -29,6 +30,7 @@ def weighted_search(searcher: HybridSearch, query: str, alpha: float, limit: int
 
 
 def rrf_search(
+    logger: Logger,
     searcher: HybridSearch,
     query_enhancer: QueryEnhancer,
     reranker: LLMReranker,
@@ -38,12 +40,29 @@ def rrf_search(
     query_enhancement_method: str | None,
     reranking_method: str | None,
 ):
+    logger.debug("original query: '%s'", query)
+
     query_enhanced = query_enhancer.enhance(query, query_enhancement_method)
-    results = searcher.rrf_search(query_enhanced, k, limit)
+
+    logger.debug("enhanced query: '%s'", query_enhanced)
+
+    new_limit = limit * 5
+    results = searcher.rrf_search(query_enhanced, k, new_limit)
+
+    logger.debug(
+        "results of RRF search: %s", ", ".join([result["title"] for result in results])
+    )
+
     reranking = False
     if reranking_method is not None and reranking_method:
         reranking = True
-        results = reranker.rerank(query_enhanced, results, reranking_method)
+        results = reranker.rerank(query_enhanced, results, limit, reranking_method)
+
+        logger.debug(
+            "results of RRF search after reranking: %s",
+            ", ".join([result["title"] for result in results]),
+        )
+
         print(f"Reranking top {limit} results using {reranking_method}...")
     padding = 4
     if query_enhancement_method is not None and query_enhancement_method:
@@ -76,6 +95,7 @@ def rrf_search(
 def run(
     cli_opts: Namespace,
     opt_parser: ArgumentParser,
+    logger: Logger,
     searcher: HybridSearch,
     query_enhancer: QueryEnhancer,
     reranker: LLMReranker,
@@ -87,6 +107,7 @@ def run(
             weighted_search(searcher, cli_opts.text, cli_opts.alpha, cli_opts.limit)
         case "rrf-search":
             rrf_search(
+                logger,
                 searcher,
                 query_enhancer,
                 reranker,
