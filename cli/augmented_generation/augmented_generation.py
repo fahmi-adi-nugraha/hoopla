@@ -6,13 +6,14 @@ from google import genai
 RAG_MODEL = "gemini-2.5-flash"
 
 
-class RAGAnswerType(Enum):
+class LLMOutputType(Enum):
     BASIC = 1
     COMPREHENSIVE = 2
     CITATIONS = 3
+    QUESTION = 4
 
 
-class RAG:
+class LLMSummarizer:
     def __init__(self, api_key: str, model_name: str = "") -> None:
         if model_name:
             self.model_name = model_name
@@ -22,7 +23,7 @@ class RAG:
         self.client = genai.Client(api_key=api_key)
 
     def __get_prompt(
-        self, query: str, documents: list[dict[str, Any]], answer_type: RAGAnswerType
+        self, query: str, documents: list[dict[str, Any]], output_type: LLMOutputType
     ) -> str:
         documents_string = "#~#".join(
             [
@@ -32,8 +33,8 @@ class RAG:
         )
 
         prompt = ""
-        match answer_type:
-            case RAGAnswerType.BASIC:
+        match output_type:
+            case LLMOutputType.BASIC:
                 prompt = f"""Answer the question or provide information based on the provided
                 documents. This should be tailored to Hoopla users. Hoopla is a movie streaming
                 service.
@@ -50,7 +51,7 @@ class RAG:
                 
                 Provide a comprehensive answer that addresses the query:"""
 
-            case RAGAnswerType.COMPREHENSIVE:
+            case LLMOutputType.COMPREHENSIVE:
                 prompt = f"""Provide information useful to this query by synthesizing
                 information from multiple search results in detail. The goal is to provide
                 comprehensive information so that users know what their options are. Your
@@ -72,7 +73,7 @@ class RAG:
                 Provide a comprehensive 3-4 sentence answer that combines information from
                 multiple sources:"""
 
-            case RAGAnswerType.CITATIONS:
+            case LLMOutputType.CITATIONS:
                 prompt = f"""Answer the question or provide information based on the
                 provided documents.
 
@@ -101,13 +102,38 @@ class RAG:
                 
                 Answer:"""
 
+            case LLMOutputType.QUESTION:
+                prompt = f"""Answer the user's question based on the provided movies
+                that are available on Hoopla.
+
+                This should be tailored to Hoopla users. Hoopla is a movie streaming
+                service.
+
+                Question: {query}
+
+                Documents:
+                {documents_string}
+
+                The search results are contained in a string with the following format:
+                - Each entry consists of the title of the movie and the description separated by
+                  a hyphen
+                - Each entry is separated by this sequence of characters: #~#
+
+                Instructions:
+                - Answer questions directly and concisely
+                - Be casual and conversational
+                - Don't be cringe or hype-y
+                - Talk like a normal person would in a chat conversation
+                
+                Answer:"""
+
             case _:
                 pass
 
         return prompt
 
     def answer(
-        self, query: str, documents: list[dict[str, Any]], answer_type: RAGAnswerType
+        self, query: str, documents: list[dict[str, Any]], answer_type: LLMOutputType
     ) -> str:
         prompt = self.__get_prompt(query, documents, answer_type)
 
