@@ -22,6 +22,18 @@ def get_opts() -> tuple[Namespace, ArgumentParser]:
         help="The number of results to use from the document search",
     )
 
+    rag_citations_parser = subparsers.add_parser(
+        "citations",
+        help="Perform RAG (search + generate answer) to generate a comprehensive summary including citations",
+    )
+    rag_citations_parser.add_argument("query", type=str, help="Search query for RAG")
+    rag_citations_parser.add_argument(
+        "--limit",
+        type=int,
+        default=5,
+        help="The number of results to use from the document search",
+    )
+
     args = parser.parse_args()
 
     return args, parser

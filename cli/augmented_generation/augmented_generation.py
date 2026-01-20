@@ -9,6 +9,7 @@ RAG_MODEL = "gemini-2.5-flash"
 class RAGAnswerType(Enum):
     BASIC = 1
     COMPREHENSIVE = 2
+    CITATIONS = 3
 
 
 class RAG:
@@ -20,37 +21,8 @@ class RAG:
 
         self.client = genai.Client(api_key=api_key)
 
-    def __summary_basic(self, query: str, documents: list[dict[str, Any]]) -> str:
-        documents_string = "#~#".join(
-            [
-                f"{document['title']} - {document['description']}"
-                for document in documents
-            ]
-        )
-        prompt = f"""Answer the question or provide information based on the provided
-        documents. This should be tailored to Hoopla users. Hoopla is a movie streaming
-        service.
-
-        Query: {query}
-
-        Documents:
-        {documents_string}
-
-        The documents are contained in a string with the following format:
-        - Each entry consists of the title of the movie and the description separated by
-          a hyphen
-        - Each entry is separated by this sequence of characters: #~#
-        
-        Provide a comprehensive answer that addresses the query:"""
-
-        response = self.client.models.generate_content(
-            model=self.model_name, contents=prompt
-        )
-
-        return response.text
-
-    def __summary_comprehensive(
-        self, query: str, documents: list[dict[str, Any]]
+    def __get_prompt(
+        self, query: str, documents: list[dict[str, Any]], answer_type: RAGAnswerType
     ) -> str:
         documents_string = "#~#".join(
             [
@@ -58,42 +30,92 @@ class RAG:
                 for document in documents
             ]
         )
-        prompt = f"""Provide information useful to this query by synthesizing
-        information from multiple search results in detail. The goal is to provide
-        comprehensive information so that users know what their options are. Your
-        response should be information-dense and concise, with several key pieces of
-        infromation about the genre, plot, etc. of each movie.
 
-        This should be tailored to Hoopla users. Hoopla is a movie streaming service.
+        prompt = ""
+        match answer_type:
+            case RAGAnswerType.BASIC:
+                prompt = f"""Answer the question or provide information based on the provided
+                documents. This should be tailored to Hoopla users. Hoopla is a movie streaming
+                service.
 
-        Query: {query}
+                Query: {query}
 
-        Search Results:
-        {documents_string}
+                Documents:
+                {documents_string}
 
-        The search results are contained in a string with the following format:
-        - Each entry consists of the title of the movie and the description separated by
-          a hyphen
-        - Each entry is separated by this sequence of characters: #~#
-        
-        Provide a comprehensive 3-4 sentence answer that combines information from
-        multiple sources:"""
+                The documents are contained in a string with the following format:
+                - Each entry consists of the title of the movie and the description separated by
+                  a hyphen
+                - Each entry is separated by this sequence of characters: #~#
+                
+                Provide a comprehensive answer that addresses the query:"""
 
-        response = self.client.models.generate_content(
-            model=self.model_name, contents=prompt
-        )
+            case RAGAnswerType.COMPREHENSIVE:
+                prompt = f"""Provide information useful to this query by synthesizing
+                information from multiple search results in detail. The goal is to provide
+                comprehensive information so that users know what their options are. Your
+                response should be information-dense and concise, with several key pieces of
+                infromation about the genre, plot, etc. of each movie.
 
-        return response.text
+                This should be tailored to Hoopla users. Hoopla is a movie streaming service.
+
+                Query: {query}
+
+                Search Results:
+                {documents_string}
+
+                The search results are contained in a string with the following format:
+                - Each entry consists of the title of the movie and the description separated by
+                  a hyphen
+                - Each entry is separated by this sequence of characters: #~#
+                
+                Provide a comprehensive 3-4 sentence answer that combines information from
+                multiple sources:"""
+
+            case RAGAnswerType.CITATIONS:
+                prompt = f"""Answer the question or provide information based on the
+                provided documents.
+
+                This should be tailored to Hoopla users. Hoopla is a movie streaming service.
+
+                If not enough information is available to give a good answer, say so but
+                give as good of an answer as you can while citing the sources you have.
+
+                Query: {query}
+
+                Search Results:
+                {documents_string}
+
+                The search results are contained in a string with the following format:
+                - Each entry consists of the title of the movie and the description separated by
+                  a hyphen
+                - Each entry is separated by this sequence of characters: #~#
+
+                Instructions:
+                - Provide a comprehensive answer that addresses the query
+                - Cite sources using [1], [2], etc. format when referencing information
+                - If sources disagree, mention the different viewpoints
+                - If the answer isn't in the documents, say "I don't have enough
+                  information"
+                - Be direct and informative
+                
+                Answer:"""
+
+            case _:
+                pass
+
+        return prompt
 
     def answer(
         self, query: str, documents: list[dict[str, Any]], answer_type: RAGAnswerType
     ) -> str:
-        response = ""
-        match answer_type:
-            case RAGAnswerType.BASIC:
-                response = self.__summary_basic(query, documents)
-            case RAGAnswerType.COMPREHENSIVE:
-                response = self.__summary_comprehensive(query, documents)
-            case _:
-                pass
-        return response
+        prompt = self.__get_prompt(query, documents, answer_type)
+
+        if prompt is None or not prompt:
+            return ""
+
+        response = self.client.models.generate_content(
+            model=self.model_name, contents=prompt
+        )
+
+        return response.text
