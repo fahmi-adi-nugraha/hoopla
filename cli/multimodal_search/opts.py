@@ -12,6 +12,13 @@ def get_opts() -> tuple[Namespace, ArgumentParser]:
         "image", type=str, help="Path to the image to embed"
     )
 
+    image_search_parser = subparser.add_parser(
+        "image_search", help="Search using an image"
+    )
+    image_search_parser.add_argument(
+        "image", type=str, help="Path to the image to use as a search query"
+    )
+
     args = parser.parse_args()
 
     return args, parser
